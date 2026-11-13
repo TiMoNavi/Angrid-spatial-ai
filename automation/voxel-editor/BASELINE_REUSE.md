@@ -6,7 +6,17 @@
 
 原版页面的实际入口在 [apps/room-viewer/index.html](../../reference/3d-model-anything/apps/room-viewer/index.html)，运行与模式切换在 [src/main.ts](../../reference/3d-model-anything/apps/room-viewer/src/main.ts)，样式在 [src/style.css](../../reference/3d-model-anything/apps/room-viewer/src/style.css)。demos 是房间模块，不是查看器页面的全部实现。
 
-新页面以这些文件的画布、侧栏、模式/来源切换、视角与状态处理为起点。需要复制的代码写进当前独立实验，保留原 MIT 作者与许可及来源说明；不能回到 reference 内加编辑按钮或注册新房间。原版 [RoomModule / BuiltRoom / RoomLayout 类型](../../reference/3d-model-anything/packages/room-runtime/types.ts) 用于理解数据契约，实验可用自己的等价场景模型，但须写清映射。
+实验 6 以这些文件的画布、侧栏、模式/来源切换、视角与状态处理为起点。需要复制的代码写进当前独立实验，保留原 MIT 作者与许可及来源说明；不能回到 reference 内加编辑按钮或注册新房间。原版 [RoomModule / BuiltRoom / RoomLayout 类型](../../reference/3d-model-anything/packages/room-runtime/types.ts) 用于理解数据契约，实验可用自己的等价场景模型，但须写清映射。
+
+### 2026-11-14 新增 openPlan3D 编辑器框架基线
+
+按用户后续指示，实验 7 以 openPlan3D 的隔离副本作编辑器外壳；原版 Viewer 的证据对照和 scan-to-threejs 工作流继续保留。具体边界见 [源码评估](openplan3d-integration-assessment.md) 和 [综合方案](VOXEL_EDITOR_V2.md)。不是把现有全部代码改成另一技术栈，也不是直接在 reference 改造。
+
+- 来源 `laanlabs/openPlan3D`，固定 revision `b0727b54da5f0f642722dcc88cc52d7236fadc9e`；[manifest](openplan3d-upstream-manifest.json) 记录 1156 个上游 regular files 的 SHA-256。`fetch_openplan3d.py` 可验证或只恢复缺失文件，不覆盖改动，不将外层 Angrid HEAD 误作上游版本。
+- 参考目录是源码归档快照，本机依赖/生成物不属于 upstream 验证。新实验复制必要源码、固定依赖版本、保留 MIT；额外资产逐项核对许可，不整包复制 node_modules、用户工程和云凭据。
+- 其现有平面/项目模型是厘米制，体素域和原版扫描是米制；先做唯一坐标适配层。Three 版本不同，不共享运行时对象/addon。
+- 完整复制 `docs/skills/openplan3d-plan-authoring/` 的 Skill、例子及其引用文件作第二份只读 upstream；同时保留原版 scan-to-threejs 的完整快照要求。各自独立 manifest、出处与许可，衍生规则另写。
+- 现有 Agent Bridge/MCP、项目校验和一次 Undo 可复用，但体素需独立 schema、revision/区域校验、增量 chunk patch/history。现有生成效果图、只读线上分享、JSON 未知字段保留都不算体素 AI 已接通。
 
 ## Layout 平面设计路线
 

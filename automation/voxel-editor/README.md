@@ -12,8 +12,11 @@
 4. [原版继承清单](BASELINE_REUSE.md) 列明 Layout 功能、完整 Skill 复制目录、出处、许可和能力完成口径。
 5. [实验 5 目标](../../experiment/实验5_游戏式体素编辑/目标与实现方案.md) 是交互与几何约束的详细依据。
 6. [本轮接续记录](HANDOFF.md) 汇总已验收功能、检查点、现场与下一项任务；完成状态仍以 STATE 为准。
+7. [实验 7 修正方案](VOXEL_EDITOR_V2.md) 规定真正占据格、选格/区域/整物体操作、局部层级和明确的格数验收；附 openPlan3D、实时体素与 VoxLution 三份独立评估。
 
-原版 [3d-model-anything](../../reference/3d-model-anything/) 只读。新页面以它的 Viewer、Layout 平面视图与 scan-to-threejs Skill 的测量/坐标/对照流程为基线，在新实验内扩展。不要回去改实验 1–4，也不要为复用而改原版。
+原版 [3d-model-anything](../../reference/3d-model-anything/) 只读。实验 6 以它的 Viewer、Layout 为页面基线；按用户 2026-11-14 新指示，实验 7 采用 [openPlan3D](../../reference/openPlan3D/) 的独立副本作编辑器外壳，继续保留原版测量/坐标/对照与完整 scan-to-threejs Skill。两份 reference 都不作为施工目录，不回改旧实验。
+
+openPlan3D 已按 pinned revision 核对 1156 个上游源文件。运行 `python3 automation/voxel-editor/fetch_openplan3d.py` 复验；首次缺失时加 `--fetch` 下载固定版本并只补缺失文件。遇到源文件已修改会拒绝覆盖，额外本地文件和 node_modules 不属于核验。它现有 MCP/Agent Bridge 是接入点，不表示我们的 AI 或体素已接通。
 
 ## 查看任务
 
@@ -33,7 +36,7 @@
 - 每一阶段新开独立实验；实验 5 是方案，实验 6–9 按路线图推进。
 - 房间坐标沿用原版，XZ 地面、Y 向上、米为单位。两个扫描会话不自动拼接。
 - RoomPlan 结构、平整墙地面和推断桌面是编辑基底。PLY/TSDF 是可切换的证据，不能成为加密时自动恢复噪声的几何源。
-- “格子变细”是确定性的重表达；“AI 细化”是有边界、有来源、可预览和可撤销的新几何。只显示格线或改变吸附步长不算层级体素已实现。
+- “格子变细”是确定性的重表达；“AI 细化”是有边界、有来源、可预览和可撤销的新几何。只显示格线或改变吸附步长不算层级体素已实现。占据本身也不等于物体实例边界；对象归属、未知/冲突和人工拆合必须独立保存。
 - Layout 是与三维并列的 SVG 平面设计路线，保留原版平移、缩放、适配与米制信息；不能用顶视相机替代。
 - 实验 8 完整复制原版 Skill 的指令、references、assets 和 scripts 形成可追溯 upstream 快照，再新增体素规则；原版代码与文档均只读。
 - 私有 ZIP、照片、PLY、派生扫描 JSON 和运行截图放在被忽略的 .private/，不进入公开 GitHub。

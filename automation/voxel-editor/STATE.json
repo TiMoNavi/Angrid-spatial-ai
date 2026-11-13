@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-11-13T18:39:50Z",
+  "updatedAt": "2026-11-13T19:04:27Z",
   "branch": "codex/voxel-editor-v1",
   "note": "远端仓库为公开仓库；推送前核对提交和隐私。本状态以任务 ID 为唯一事实来源。",
   "tasks": {
@@ -89,6 +89,13 @@
       "startedAt": "2026-11-13T18:39:50Z",
       "completedAt": "2026-11-13T18:39:50Z"
     },
+    "P2-05": {
+      "status": "pending",
+      "checkpoint": null,
+      "evidence": [],
+      "reason": null,
+      "updatedAt": null
+    },
     "P2-01": {
       "status": "pending",
       "checkpoint": null,
@@ -132,6 +139,35 @@
       "updatedAt": null
     },
     "P4-02": {
+      "status": "pending",
+      "checkpoint": null,
+      "evidence": [],
+      "reason": null,
+      "updatedAt": null
+    },
+    "P0-04": {
+      "status": "in_progress",
+      "checkpoint": null,
+      "evidence": [],
+      "reason": null,
+      "updatedAt": "2026-11-13T19:04:27Z",
+      "startedAt": "2026-11-13T19:04:27Z"
+    },
+    "P2-00": {
+      "status": "pending",
+      "checkpoint": null,
+      "evidence": [],
+      "reason": null,
+      "updatedAt": null
+    },
+    "P2-03": {
+      "status": "pending",
+      "checkpoint": null,
+      "evidence": [],
+      "reason": null,
+      "updatedAt": null
+    },
+    "P2-04": {
       "status": "pending",
       "checkpoint": null,
       "evidence": [],
@@ -337,6 +373,12 @@
         ],
         "privacyReminder": "路径核验不等于内容隐私核验；推送前仍须检查 diff，尤其是 JSON 与日志。"
       }
+    },
+    {
+      "at": "2026-11-13T19:04:27Z",
+      "task": "P0-04",
+      "action": "start",
+      "detail": "已领取；请先保存相关文件的 Git diff，再开始修改"
     }
   ]
 }

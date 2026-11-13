@@ -11,7 +11,11 @@
     "viewerShell": "reference/3d-model-anything/apps/room-viewer/",
     "runtimeTypes": "reference/3d-model-anything/packages/room-runtime/types.ts",
     "reuseGuide": "automation/voxel-editor/BASELINE_REUSE.md",
-    "skillCopyPolicy": "实验 8 完整复制 scan-to-threejs Skill 为可追溯的只读 upstream 快照，再新增体素编辑规则；不修改 reference。"
+    "skillCopyPolicy": "实验 8 完整复制 scan-to-threejs Skill 为可追溯的只读 upstream 快照，再新增体素编辑规则；不修改 reference。",
+    "editorShell": "reference/openPlan3D/",
+    "editorRevision": "b0727b54da5f0f642722dcc88cc52d7236fadc9e",
+    "voxelDecision": "automation/voxel-editor/VOXEL_EDITOR_V2.md",
+    "editorSourcePolicy": "参考快照只读；用 fetch_openplan3d.py 验证/恢复缺失文件；新实验隔离适配，保留两套上游 Skill 和许可"
   },
   "stages": [
     {
@@ -30,7 +34,7 @@
       "id": "P2",
       "name": "确定性层级体素",
       "experiment": "experiment/实验7_确定性层级体素/",
-      "goal": "全局/局部格密度变化不改变米制几何，局部细节有父层"
+      "goal": "在 openPlan3D 独立副本中实现真实占据格、格/区/物体编辑、局部层级与增量性能；保留平整基底"
     },
     {
       "id": "P3",
@@ -248,11 +252,93 @@
       ]
     },
     {
-      "id": "P2-01",
-      "stage": "P2",
-      "title": "实现全局格密度确定性切换",
+      "id": "P0-04",
+      "stage": "P0",
+      "title": "核验 openPlan3D 并评估真体素与 VoxLution 接入",
       "dependsOn": [
         "P1-05"
+      ],
+      "allowedPaths": [
+        "automation/voxel-editor/"
+      ],
+      "acceptance": [
+        "指定 openPlan3D 上游 revision 与本地源文件逐一 SHA-256 核验；不覆盖本地已有参考与用户改动",
+        "独立报告源码已有 AI Bridge 的边界、单位、保存/历史及真正体素改造难点",
+        "独立搜索轻量实时占据/分块/拾取/表面合并方案，区分可运行编辑器与空壳",
+        "核对本地 VoxLution 论文和材料，区分拆格、语义生成、平面锁定、扫描噪声和推理时延",
+        "综合决策与 P2/P3 任务写明真正选格/摆放/增删/局部细化及具体占据不变量；不把研究或实验6格线记为体素完成",
+        "核对现有链路的实例身份丢失，提出结构/实例/几何归属分层、unknown/conflict 与人工拆合方案；不把保留ID称为精确分割"
+      ],
+      "commands": [
+        "python3 automation/voxel-editor/fetch_openplan3d.py",
+        "python3 automation/voxel-editor/taskctl.py validate"
+      ],
+      "outputs": [
+        "automation/voxel-editor/openplan3d-integration-assessment.md",
+        "automation/voxel-editor/realtime-voxel-research.md",
+        "automation/voxel-editor/voxlution-transfer-assessment.md",
+        "automation/voxel-editor/VOXEL_EDITOR_V2.md",
+        "automation/voxel-editor/openplan3d-upstream-manifest.json"
+      ]
+    },
+    {
+      "id": "P2-00",
+      "stage": "P2",
+      "title": "建立 openPlan3D 独立框架副本与米制适配",
+      "dependsOn": [
+        "P0-04",
+        "P1-05"
+      ],
+      "allowedPaths": [
+        "experiment/实验7_确定性层级体素/",
+        "experiment/index.html",
+        "experiment/README.md"
+      ],
+      "acceptance": [
+        "先读 VOXEL_EDITOR_V2.md 和三份调研；核验上游 pinned manifest，从 reference 复制必要代码到新实验，不在 reference 修改或运行构建",
+        "记录实际复制文件 SHA-256、出处和 MIT；不复制依赖目录、云端凭据或扫描资产；同一 app 不混用两版 Three/addon",
+        "浏览器跑通本地 2D/3D、RoomPlan 结构、开口、语义代理、选择/摆放、保存和撤销；无 AI/云服务也可用",
+        "体素域保持米制 XZ/+Y，建立唯一厘米/plan XY/弧度旋转/楼层/中心底高适配器；负坐标和往返转换有测试",
+        "沿用原版 Viewer/证据对照与独立平面设计路线；保持 iPhone 离线 ZIP，不把家具包围盒称为已测得实心外形"
+      ],
+      "commands": [
+        "坐标/单位/旋转/底高往返测试",
+        "真实浏览器离线两会话和虚构示例冒烟验证"
+      ],
+      "sharedFileRules": [
+        "共享导航只增加当前独立实验；保留实验1–6与参考原版"
+      ]
+    },
+    {
+      "id": "P2-05",
+      "stage": "P2",
+      "title": "保留对象实例并实现可修正的物体边界归属",
+      "dependsOn": [
+        "P2-00"
+      ],
+      "allowedPaths": [
+        "experiment/实验7_确定性层级体素/"
+      ],
+      "acceptance": [
+        "新实验导入保留原始 RoomPlan sourceInstanceId、类别、置信、属性和来源变换；不能仅按数组索引猜测对应，需检查顺序与几何一致；不修改只读原版转换脚本",
+        "区分实例身份、类别、代理 OBB、实际几何 mask 和空间占据；家具包围盒不冒充实心物体",
+        "对象保留独立归属：贴墙柜子可单独选择和移动，接触椅子不被连通域合并，断开的桌腿仍属同一桌子",
+        "以结构平面与对象种子约束几何候选，保留 unknown/conflict；区分占据未知和归属未知；同一粗格多个候选不得静默覆盖或任选一件，粗格混合不等于几何碰撞",
+        "提供人工框选/剖切修正、拆分、合并、重新归属与冻结；撤销和重载后身份与归属不变",
+        "PLY 的类别字段不得当实例；多视角 AI 先核对 RGB-D、相机内参、位姿、帧 ID、坐标变换，缺少输入时降级不伪造精度",
+        "用本机人工标注小样本评估边界质量；手工、几何候选、AI 补全分别记录来源"
+      ],
+      "commands": [
+        "稳定实例 ID/接触与断片/多 owner 冲突/人工拆合往返测试",
+        "真实浏览器选中贴墙物体→单独移动→拆合/撤销→保存重开"
+      ]
+    },
+    {
+      "id": "P2-01",
+      "stage": "P2",
+      "title": "实现真实占据网格与确定性全局拆格",
+      "dependsOn": [
+        "P2-05"
       ],
       "allowedPaths": [
         "experiment/实验7_确定性层级体素/",
@@ -265,7 +351,11 @@
         "RoomPlan 非整格边界只裁短显示格，不暗改测量值",
         "变化不从 PLY 重新生成表面",
         "存在真实层级/占用格数据与确定性几何重采样，不能仅改变 gridStep、吸附距离或绘制更多格线就标为完成",
-        "测试父格到子格的覆盖守恒、边界裁剪和洞口保持，并记录格数量/分辨率与米制几何的区别"
+        "测试父格到子格的覆盖守恒、边界裁剪和洞口保持，并记录格数量/分辨率与米制几何的区别",
+        "保存真正整数单元索引/owner/语义/占据与未知状态，线框关闭时查询与编辑仍存在；平整墙地面有对应占据与裁剪规则",
+        "20cm的3×2×2完整占据块在10/5cm时分别为96/768格，总体积和米制边界不变",
+        "已有单格删除/孔洞在变密和降密度后不能被原粗代理填回；不可无损合并的细层保留或拒绝有损操作",
+        "非整格平面/房间凹轮廓/门窗边界裁剪同时作用于渲染、占据查询与体积，不只裁视觉表面"
       ],
       "commands": [
         "几何不变量测试",
@@ -276,11 +366,34 @@
       ]
     },
     {
+      "id": "P2-03",
+      "stage": "P2",
+      "title": "实现格子、区域与整物体的游戏式编辑",
+      "dependsOn": [
+        "P2-01"
+      ],
+      "allowedPaths": [
+        "experiment/实验7_确定性层级体素/"
+      ],
+      "acceptance": [
+        "在地面/墙面/桌面框矩形并沿法线拉伸，创建真实 a×b×c cells，命名后可作为一件对象摆放/复制/90度旋转",
+        "3×2×2 实际占据12格；单格删除变11、撤销恢复12；关格线仍能选择/增删格",
+        "单格、三维区域、整物体三种选择有明确反馈，支持邻面加格、区域填充/挖空、命名/标签与锁定",
+        "拾取查询来自 occupancy，测试负坐标/边界/合并面；2D占据切片与3D同状态，剖切后能编辑内部",
+        "移动/变换写回真实占据和owner，父承载/子锁定规则不被绕过；无效操作整笔拒绝",
+        "从真实鼠标/键盘走通框选拉伸→命名摆到桌面→挖空→撤销→保存重开，不能只注入内部状态"
+      ],
+      "commands": [
+        "占据数/哈希/锁定/支撑/边界测试",
+        "浏览器真实指针完整编辑闭环"
+      ]
+    },
+    {
       "id": "P2-02",
       "stage": "P2",
       "title": "实现局部父子格与候选细节",
       "dependsOn": [
-        "P2-01"
+        "P2-03"
       ],
       "allowedPaths": [
         "experiment/实验7_确定性层级体素/"
@@ -289,7 +402,11 @@
         "选区可到 2.5 cm 而未选区保持原密度",
         "局部候选记录父层、范围、来源、版本和接受/撤销历史",
         "限定体积内用 Box 等简单几何拼出柜门、冰箱门或花洒示例",
-        "局部细化不能改变锁定平面与选区外对象"
+        "局部细化不能改变锁定平面与选区外对象",
+        "12格中只拆1格为8个子格后共19个叶占据单元；占据体积不变，其余11格逐值不变；记录parent/child与范围",
+        "细化覆盖父格不双计，粗细邻界无穿透/重复面/裂缝；已有局部删除与语义跨全局重表达保留",
+        "确定性拆格与部件语义细化分成不同操作；先做非AI柜子部件候选并记录为设计推断，不声称扫描测得",
+        "不得将体素膨胀/平滑等操作全屋应用后吞掉门窗或破坏锁定平面"
       ],
       "commands": [
         "局部边界与回滚测试",
@@ -297,11 +414,35 @@
       ]
     },
     {
+      "id": "P2-04",
+      "stage": "P2",
+      "title": "验证分块增量渲染、历史和实时预算",
+      "dependsOn": [
+        "P2-02",
+        "P2-03"
+      ],
+      "allowedPaths": [
+        "experiment/实验7_确定性层级体素/"
+      ],
+      "acceptance": [
+        "比较16³/32³稀疏块，记录取舍；不逐格创建Mesh、Svelte store或家具记录",
+        "局部编辑只重建脏块及必要邻块，可见面剔除/可选greedy不改变occupancy；worker过期结果不得覆盖新revision",
+        "体素使用增量patch与一次手势/事务撤销，不因每刷一格触发整项目JSON clone/整屋重建",
+        "在实际主力设备/浏览器记录10k/100k/1M占据格的可见格数、帧时间、编辑/保存/撤销延迟、draw calls和内存；超预算记录边界并限流/分批",
+        "拖动p95≤33ms和普通局部反馈≤100ms为候选目标，必须以实测给出支持的工作负载，不把计划目标写为已达到",
+        "导出重载保留完整occupancy/owner/局部细化/锁定与哈希；中途失败不部分接受候选"
+      ],
+      "commands": [
+        "分档性能/增量历史与Worker竞态回归",
+        "浏览器压力与往返保存验收"
+      ]
+    },
+    {
       "id": "P3-01",
       "stage": "P3",
       "title": "制定 AI 场景命令契约与校验器",
       "dependsOn": [
-        "P2-02"
+        "P2-04"
       ],
       "allowedPaths": [
         "experiment/实验8_AI体素命令与局部细化/",
@@ -312,7 +453,9 @@
         "命令含 sceneRevision、目标/选区 ID、锚面、米制范围与来源",
         "仅接受白名单结构化操作，拒绝脚本、越界、锁定项修改和旧版本命令",
         "无冲突新增可撤销；覆盖、清空和批量操作先预览再接受",
-        "失败和无效输出不改变场景"
+        "失败和无效输出不改变场景",
+        "优先扩展openPlan本地Bridge/MCP为region/chunk受限工具，不把每格通过家具add/update接口提交",
+        "命令以部件树/区域patch编译，包含邻界、预期revision与预算；在内存完整验证后形成单笔事务"
       ],
       "commands": [
         "命令校验单元测试"
@@ -341,7 +484,9 @@
         "baseline-manifest.json 逐文件记录来源路径、SHA-256、本仓库快照提交与复制时间；UPSTREAM.md 说明本地适配及仍未接通的工具",
         "保留原版 MIT 作者与许可；不复制 data/、照片、纹理、node_modules、dist 或 iPhone 端，不把参考目录已有用户改动混入衍生实现",
         "在实验 8 工作目录验证 Skill 的实际发现/调用和脚本 S 路径；原版 demos/index.ts 等交付位置只映射到本实验，绝不照指令写入 reference",
-        "真实调用的 AI 适配器须有可核对请求/响应与失败测试；仅写 Skill 文件不算网页 AI 已接通"
+        "真实调用的 AI 适配器须有可核对请求/响应与失败测试；仅写 Skill 文件不算网页 AI 已接通",
+        "另完整复制openPlan3D docs/skills/openplan3d-plan-authoring及其引用为第二份可追溯upstream快照，保留MIT、逐文件hash与格式验证；不混成自由脚本输出",
+        "验证本地Bridge客户端/server启用开关、Codex实际连接、schema与revision；不要把AI渲染图或线上只读分享当作体素写入通路"
       ],
       "commands": [
         "AI 适配器契约测试",
@@ -356,7 +501,10 @@
       ],
       "baselineSources": [
         "reference/3d-model-anything/.agents/skills/scan-to-threejs/",
-        "reference/3d-model-anything/LICENSE"
+        "reference/3d-model-anything/LICENSE",
+        "reference/openPlan3D/docs/skills/openplan3d-plan-authoring/",
+        "reference/openPlan3D/docs/agent-bridge.md",
+        "reference/openPlan3D/LICENSE"
       ]
     },
     {

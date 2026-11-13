@@ -7,7 +7,7 @@
 1. 确认仓库是 Angrid-spatial-ai，读取本目录 README、TASKS、STATE，执行 taskctl.py validate。
 2. 运行 git status --short --branch、git diff --stat、git diff --cached --stat，识别已有用户改动。当前仓库可能保留不属于本任务的改动，不能要求全仓 clean，更不能重置它们。
 3. 用 taskctl.py next 领取依赖已完成的任务。若已有 in_progress，先读它的状态与现场，再续做。
-4. 读取任务的 allowedPaths、验收条件和 BASELINE_REUSE.md。页面先核对原版 apps/room-viewer，Layout 核对其 src/layout.ts；Skill 不只读摘要，按任务阶段读取原版指令和相关 references。原版只读；新阶段从上一验证实验迁移必要能力到新目录，保留旧实验供对照。
+4. 读取任务的 allowedPaths、验收条件和 BASELINE_REUSE.md。实验 7 起先读 VOXEL_EDITOR_V2.md、openPlan3D 源码评估、实时体素/物体边界调研及 VoxLution 评估；验证固定 upstream manifest 后从新框架复制到独立实验。原版 apps/room-viewer 与 src/layout.ts 继续用于证据对照/平面路线；Skill 不只读摘要，按任务阶段读取原版指令和相关 references。两份参考只读；保留旧实验供对照。
 5. 执行 taskctl.py start TASK-ID。只修改允许路径；需要扩大路径时先说明真实原因并更新任务定义，不静默跨阶段施工。
 
 ## 实现、验收和提交
@@ -49,7 +49,7 @@ complete 会再次检查提交路径、敏感资产扩展名和任务依赖。�
 
     python3 automation/voxel-editor/taskctl.py block TASK-ID --reason "<真实原因和失败现场>"
 
-状态不是成果。视觉格线/吸附不等于层级体素；source="ai" 字段或命令模板不等于真实 AI 接入；顶视相机不等于 Layout 平面设计入口。不要把不可运行的页面或没有调用真实模型的假数据标为 AI 成功；不能因时间不足而把验收条件删除。准备重试时，先检查任务目录中是否有前轮未完成修改，再执行 retry 和 start。
+状态不是成果。视觉格线/吸附不等于层级体素；占据或连通域不等于物体实例边界；source="ai" 字段、MCP 源码或命令模板不等于真实 AI 接入；顶视相机不等于 Layout 平面设计入口。不要把不可运行的页面或没有调用真实模型的假数据标为 AI 成功；不能因时间不足而把验收条件删除。准备重试时，先检查任务目录中是否有前轮未完成修改，再执行 retry 和 start。
 
     python3 automation/voxel-editor/taskctl.py retry TASK-ID
     python3 automation/voxel-editor/taskctl.py start TASK-ID

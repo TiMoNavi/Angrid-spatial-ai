@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>实验 8 · 扫描证据分层查看器 | Angrid</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="../shared/style.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="site-header"><div class="shell header-inner">
+    <a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true">⌖</span> Angrid 空间实验室</a>
+    <nav class="site-nav" aria-label="实验导航"><a href="../index.html">实验总览</a><a href="../实验4_扫描结果的体素网格转换/index.html">体素转换</a><a href="index.html" aria-current="page">实验 8 分层查看</a></nav>
+  </div></header>
+  <main class="shell">
+    <section class="intro scan-intro">
+      <div><p class="sequence">实验 8 / Office 2 / 同一套米制坐标</p><h1>扫描证据与分类体素，分层检查</h1>
+        <p class="lead">保留原始 LiDAR、深度点、TSDF 和逐件家具候选；平整结构格、分类家具格与用户体素盒各有自己的图层。所有结果对齐在 Office 2 的房间局部坐标中。</p></div>
+      <div class="intro-note"><strong>读图原则</strong>扫描证据保留噪声与缺口；分类体素是另存的派生结果。平整墙地、家具候选与未知区域分别处理，体素盒只占其中一层。</div>
+    </section>
+    <div id="scan-metrics" class="metric-strip" aria-live="polite"><div class="metric"><b>—</b><span>载入中</span></div></div>
+    <div class="studio-grid">
+      <aside class="panel layer-panel" aria-label="预览图层与视角">
+        <h2>视图组合</h2>
+        <div class="preset-list" role="group" aria-label="图层预设">
+          <button type="button" class="preset" data-preset="raw" aria-pressed="true">原始扫描 <small>LiDAR + 识别框</small></button>
+          <button type="button" class="preset" data-preset="segments" aria-pressed="false">家具切片 <small>逐件网格 + 两种包围盒</small></button>
+          <button type="button" class="preset" data-preset="voxels" aria-pressed="false">体素表面 <small>原始 PLY 表面格</small></button>
+          <button type="button" class="preset" data-preset="fusion" aria-pressed="false">融合对照 <small>全帧深度 TSDF</small></button>
+          <button type="button" class="preset" data-preset="depth" aria-pressed="false">深度落点 <small>全帧深度归并点</small></button>
+          <button type="button" class="preset" data-preset="structure" aria-pressed="false">结构白模 <small>RoomPlan 墙与家具框</small></button>
+          <button type="button" class="preset" data-preset="classified" aria-pressed="false" disabled>分类体素 <small>等待实验 9 结果</small></button>
+        </div>
+        <h2 class="section-title">逐层开关</h2>
+        <p class="layer-hint">展开“显示”，可单独设置每层透明度与剖切。</p>
+        <h3 class="layer-family-title">观察证据与识别参照</h3>
+        <div id="base-layer-controls" class="layer-controls"></div>
+        <h3 class="layer-family-title">分类结果与设计占据</h3>
+        <div id="derived-layer-controls" class="layer-controls"></div>
+        <section class="manifest-note" aria-label="分类结果状态"><strong id="manifest-title">读取分类结果…</strong><p id="manifest-status" role="status">检查本机实验 9 的派生文件。</p><button id="reload-derived" type="button" class="control">重新读取分类结果</button></section>
+        <div class="field compact"><label for="voxel-step">网格显示格距</label><select id="voxel-step"><option value="0.2" selected>20 cm</option><option value="0.1">10 cm</option><option value="0.05">5 cm</option><option value="0.025">2.5 cm</option></select></div>
+        <div class="field compact"><label for="scan-opacity">扫描证据快捷透明度 <output id="opacity-value">68%</output></label><input id="scan-opacity" type="range" min="15" max="100" value="68"></div>
+        <label class="cut-row"><input id="cut-enabled" type="checkbox" checked> 开启水平剖切</label>
+        <div class="field compact"><label for="cut-height">剖切高度 <output id="height-value">1.5 m</output></label><input id="cut-height" type="range" min="0.3" max="3.0" step="0.1" value="1.5"></div>
+      </aside>
+      <section class="view-stack" aria-label="扫描可视化">
+        <div class="view-toolbar"><div class="view-label"><span class="live-dot" aria-hidden="true"></span><span id="view-title">原始扫描</span></div><div class="camera-actions" role="group" aria-label="相机视角"><button type="button" data-view="iso" aria-pressed="true">立体</button><button type="button" data-view="top" aria-pressed="false">俯视</button><button type="button" data-view="front" aria-pressed="false">正视</button><button type="button" data-view="side" aria-pressed="false">侧视</button></div></div>
+        <div id="scan-display" class="display scan-display" aria-busy="true"><canvas id="scan-canvas" aria-label="Office 2 扫描分层三维视图"></canvas><div id="scan-status" class="display-status" role="status">读取原始扫描与派生图层…</div><div class="display-tip">拖动旋转 · 滚轮缩放 · 右键平移 · 点击家具切片或线框选择</div></div>
+        <div class="view-foot"><span id="layer-caption">房间局部坐标 · 米 · Y 向上</span><span id="coordinate-note">room-local-m / 未重复变换</span></div>
+        <div class="support-grid"><section class="panel plan-panel"><div class="subhead"><h2>俯视结构图</h2><span>RoomPlan / XZ</span></div><svg id="plan-svg" role="img" aria-label="Office 2 的房间轮廓和家具识别框"></svg></section>
+          <section class="panel evidence-panel"><div class="subhead"><h2>采集照片</h2><span>原始照片选帧</span></div><img id="photo-preview" alt="Office 2 扫描照片" loading="lazy"><div class="photo-controls"><button id="photo-prev" type="button" aria-label="上一张照片">上一张</button><span id="photo-count">—</span><button id="photo-next" type="button" aria-label="下一张照片">下一张</button></div><p>用于视觉核对，不作为已切出的家具纹理。</p></section></div>
+      </section>
+      <aside class="panel inspector" aria-label="逐件家具检查">
+        <div class="subhead"><h2>家具实例</h2><span>RoomPlan × LiDAR</span></div>
+        <div id="object-list" class="object-list" role="group" aria-label="识别的家具"></div>
+        <div id="object-detail" class="object-detail" aria-live="polite">读取家具框和网格统计…</div>
+        <div class="inspector-actions"><button id="focus-object" type="button" class="control">聚焦所选家具</button><label><input id="only-selected" type="checkbox"> 只显示所选切片</label><a id="download-segment" class="control" href="#" download>下载所选 PLY</a><a id="download-report" class="control" href="#" download="segments.json">下载包围盒 JSON</a></div>
+        <div id="classified-object-detail" class="classified-object-detail"></div>
+        <div class="method-note"><strong>“干净”到哪一步？</strong><p>原家具切片沿用旧的排他裁剪候选，仍可能有孔、粘连或漏扫。实验 9 的家具格与冲突格另存，不覆盖它；共享粗格不等同于原始面冲突。未知不等于净空。</p></div>
+      </aside>
+    </div>
+    <section class="section callout warn"><strong>输入与来源</strong><p>本页只读本机 Office 2 数据。原始八层来自现有“扫描分层预览”；新增分类层读取实验 9 的 LayerManifest。Office 1 缺少有效原始 LiDAR PLY，不会用 Office 2 或合成网格代替。杂物“是否计算”由离线流水线控制，图层开关只控制显示；关闭显示不会删除数据。</p></section>
+  </main>
+  <footer class="shell footer">Angrid Spatial AI · 扫描切片为可检查的候选，不作封闭物体或施工精度保证。</footer>
+  <script type="importmap">{"imports":{"three":"../shared/vendor/three.module.js"}}</script>
+  <script type="module" src="main.js"></script>
+</body>
+</html>

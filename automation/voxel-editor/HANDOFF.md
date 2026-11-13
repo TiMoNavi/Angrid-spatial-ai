@@ -1,5 +1,9 @@
 # 2026-11-14 接续记录
 
+## 手机方向补充
+
+用户指出 openPlan3D 的手机扫描→编辑平面图→网页交接接近最终产品。见 [手机入口评估](IOS_CAPTURE_ASSESSMENT.md)：公开的是 MIT 网页工程，匿名实时核查 iOS 仓库 404、官方 #105 仍 open，不能直接复制原生端。现有完整 Project Package ZIP 已提供 web/native/baseline/mapping/assets 往返机制，不要把简化 geometry handoff 的限制说成整个项目没有往返。体素扩展和手机编辑后的同步规则尚需独立测试，现阶段仍不改手机。P2-00 补充 raw/prepared、单位/身份和导入路由约束；下一项仍为 P2-00，未把评估算成体素或真机成果。
+
 ## 本次修正（较下面的实验 6 验收记录更新）
 
 用户进一步指出实验 6 的表面格线不能当作体素，要求参考 `laanlabs/openPlan3D`，并追加“体素无法拆出物体边界”的问题。已核对本地 openPlan3D 与固定上游 commit 的 1156 个源文件完全一致，保存逐文件 SHA-256 manifest 与只补缺失文件的复验/恢复脚本。源码评估、实时体素与物体边界调研、VoxLution 评估及 [修正方案](VOXEL_EDITOR_V2.md) 均位于本任务目录。除原有 3d-model-anything 参考仍严格只读外，openPlan3D 参考也只作固定基线，不在其中开发。

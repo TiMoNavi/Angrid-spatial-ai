@@ -10,6 +10,8 @@
 
 建议从只读参考复制出新的实验，以 openPlan3D 保留成熟的平面设计路线和编辑器基础，以独立 voxel domain 实现空间占用和编辑，以原版 `scan-to-threejs` 保留扫描证据、照片位姿和对照验证。不要把每个格子塞进 `furniture[]`，不要用墙面贴线替代体素。
 
+配套手机 App、公开源码边界及两类交换协议另见 [手机入口与项目往返评估](IOS_CAPTURE_ASSESSMENT.md)。网页源码已有完整离线 Project Package ZIP 保留机制；几何 handoff 的局限不能套到全部项目交换。iOS 原生仓库截至 2026-11-14 未公开，本轮未作真机验证。
+
 ## 版本与许可边界
 
 - 本地 [UPSTREAM.txt](../../reference/openPlan3D/UPSTREAM.txt#L1) 标记上游为 `laanlabs/openPlan3D`，revision 为 `b0727b54da5f0f642722dcc88cc52d7236fadc9e`。主代理于 2026-11-14 用 `git ls-remote` 核实该仓库 HEAD，并下载指定 commit 源码归档，确认归档内 1156 个 regular files 全部与本地 SHA-256 一致；结果见 [上游文件清单](openplan3d-upstream-manifest.json)。本地额外文件、依赖和生成文件不在核验范围内。

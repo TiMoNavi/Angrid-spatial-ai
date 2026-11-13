@@ -13,6 +13,7 @@
 5. [实验 5 目标](../../experiment/实验5_游戏式体素编辑/目标与实现方案.md) 是交互与几何约束的详细依据。
 6. [本轮接续记录](HANDOFF.md) 汇总已验收功能、检查点、现场与下一项任务；完成状态仍以 STATE 为准。
 7. [实验 7 修正方案](VOXEL_EDITOR_V2.md) 规定真正占据格、选格/区域/整物体操作、局部层级和明确的格数验收；附 openPlan3D、实时体素与 VoxLution 三份独立评估。
+8. [手机入口与项目往返](IOS_CAPTURE_ASSESSMENT.md) 区分公开网页/未公开 iOS、简化 JSON/完整项目包，记录未来手机交接与体素保留的验收门槛。
 
 原版 [3d-model-anything](../../reference/3d-model-anything/) 只读。实验 6 以它的 Viewer、Layout 为页面基线；按用户 2026-11-14 新指示，实验 7 采用 [openPlan3D](../../reference/openPlan3D/) 的独立副本作编辑器外壳，继续保留原版测量/坐标/对照与完整 scan-to-threejs Skill。两份 reference 都不作为施工目录，不回改旧实验。
 

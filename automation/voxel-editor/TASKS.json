@@ -299,7 +299,9 @@
         "记录实际复制文件 SHA-256、出处和 MIT；不复制依赖目录、云端凭据或扫描资产；同一 app 不混用两版 Three/addon",
         "浏览器跑通本地 2D/3D、RoomPlan 结构、开口、语义代理、选择/摆放、保存和撤销；无 AI/云服务也可用",
         "体素域保持米制 XZ/+Y，建立唯一厘米/plan XY/弧度旋转/楼层/中心底高适配器；负坐标和往返转换有测试",
-        "沿用原版 Viewer/证据对照与独立平面设计路线；保持 iPhone 离线 ZIP，不把家具包围盒称为已测得实心外形"
+        "沿用原版 Viewer/证据对照与独立平面设计路线；保持 iPhone 离线 ZIP，不把家具包围盒称为已测得实心外形",
+        "先读 IOS_CAPTURE_ASSESSMENT.md；离线入口区分原始采集 ZIP、prepared JSON 与 Project Package，不通过旧 room.json 静默丢弃 plan.json 编辑；未支持格式须明确拒绝",
+        "唯一适配器保留源会话/identifier/parentIdentifier/floor，测试 raw/prepared 与显式导入选项优先级，避免重复校正和未经变换把 raw Y 当离地高度；本任务不改 iOS、不宣称体素已兼容手机往返"
       ],
       "commands": [
         "坐标/单位/旋转/底高往返测试",
@@ -579,7 +581,12 @@
     {
       "name": "iPhone 采集/实时同步",
       "autoStart": false,
-      "reason": "本轮沿用离线传输，待桌面编辑与场景契约稳定后另立独立实验"
+      "reason": "本轮保持既有 iPhone 与离线传输；参考 openPlan3D 手机入口及公开项目包协议，原生源码未公开，待体素场景契约稳定后另立实验"
+    },
+    {
+      "name": "iPhone 项目包往返与一键交接",
+      "autoStart": false,
+      "reason": "先验证公开协议与实际发布 App；网页体素→手机仅改一件→网页返导须保留 occupancy/chunk/实例/语义/附件，并定义改尺寸、删除、换楼层规则；不以未知字段保留或上游 fixture 代替我们自己的验收"
     },
     {
       "name": "iPhone AR 回看与重定位",

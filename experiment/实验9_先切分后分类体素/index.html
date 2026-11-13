@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>实验 9 · 先切分后分类体素</title><link rel="stylesheet" href="../shared/style.css"><link rel="stylesheet" href="qa.css"></head>
+<body>
+<header class="site-header"><div class="shell header-inner"><a class="brand" href="../index.html">Angrid 空间实验室</a><nav class="site-nav" aria-label="实验导航"><a href="../实验8_扫描证据分层查看器/?preset=classified">实验 8 分层查看</a><a href="index.html" aria-current="page">实验 9 分类体素</a></nav></div></header>
+<main class="shell">
+<section class="intro"><h1>先把房间分清，再生成格子</h1><p class="lead">同一次 Office 2 扫描。墙地、家具、归属冲突和未识别表面分别处理；网格变细只改变表达，不会增加扫描精度。</p></section>
+<p id="status" class="notice" role="status">正在读取本机分类结果…</p>
+<div class="qa-layout"><section class="view-column"><div class="view-heading"><h2>分类结果与扫描证据</h2><a href="../实验8_扫描证据分层查看器/?preset=classified" target="_blank" rel="noopener">全屏打开分层画布</a></div>
+<iframe title="Office 2 分类体素与原始扫描逐层对照" src="../实验8_扫描证据分层查看器/?preset=classified&amp;embed=1" loading="lazy"></iframe>
+<p class="caption">画布直接复用实验 8。默认显示平整结构格、分类家具表面格和冲突格；三张桌面的推断平面另有独立开关，杂物默认未计算。</p>
+</section><aside class="summary"><h2>每个面都有去处</h2><dl id="counts"></dl><p>这里的 unknown 仍是观察到的表面。未扫描空间不能当成净空；非水密家具也不能填满包围盒。</p><h3>显示壳与物理域</h3><p>墙法线方向固定一层显示格，地面方块顶部统一在 y=0。真实墙厚未知，0.10 m 仅为布局代理。门窗洞口保持为空，粗格会保守放大洞口显示。</p><h3>杂物计算</h3><p id="clutter-state">读取中…</p><p>勾选图层只切换显示。生成需要在本机运行：</p><pre><code>python3 prepare_classified.py
+python3 prepare_classified.py --compute-clutter</code></pre><p id="performance"></p></aside></div>
+<section class="report-section"><h2>五件家具的来源与观察边界</h2><p>原始 RoomPlan identifier 一对一匹配；桌椅相交面保留多个候选 owner。下表只计算排除冲突后的独占片段。</p><div class="table-scroll"><table><thead><tr><th>对象</th><th>稳定标识</th><th>保留面</th><th>冲突候选面</th><th>中心匹配误差</th><th>封闭状态</th></tr></thead><tbody id="objects"></tbody></table></div></section>
+<section class="report-section"><h2>同一几何的四种格长</h2><div class="table-scroll"><table><thead><tr><th>图层</th><th>20 cm</th><th>10 cm</th><th>5 cm</th><th>2.5 cm</th></tr></thead><tbody id="grids"></tbody></table></div><p>表内为完整格数，画布单层最多抽显 50,000 格并标明抽显数量。粗细切换不修改物理墙厚、源面归属与桌面高度。</p></section>
+<section class="report-section"><h2>需要复核的地方</h2><ul><li>窗边长桌与其椅子相接，1,246 个面保留归属冲突，不能用最近盒中心强制分配。</li><li>三张桌面的平面是从独占水平证据推导的矩形补面；缺角和未扫描区域依旧属于推断，不是测量恢复。</li><li>椅子 5（convertedIndex=4）的保留片段最高约 0.83 m，而 RoomPlan 粗框高约 1.12 m，不能把没扫到的靠背自动补成实心。</li><li>墙面、玻璃、显示器或其他漏标物体仍可能进入 unknown；剩余表面不能一律称为杂物。</li><li>六段 RoomPlan 墙未覆盖完整地面周界，缺段保持未知；这是当前输入局限，不自动补成实测墙。</li></ul><p><a href="README.md">复现与算法说明</a>　<a href="QA_REPORT.md">可复核样本与失败案例</a></p></section>
+<details class="report-section"><summary>候选范围与小碎片阈值的敏感性</summary><div class="table-scroll"><table><thead><tr><th>OBB 外扩</th><th>最小面数</th><th>独占保留面</th><th>冲突面</th><th>初筛未归属</th></tr></thead><tbody id="sensitivity"></tbody></table></div><p>这些阈值是工程初值，不能把数量上升理解为准确率提升。没有独立人工真值，本页只提供代理复核和合成不变量验证。</p></details>
+</main><script type="module" src="qa.js"></script></body></html>

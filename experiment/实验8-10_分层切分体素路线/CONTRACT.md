@@ -35,6 +35,6 @@ LayerManifest 至少含 schemaVersion、scanId、frame、sourceFiles+hashes、ge
 
 ## 互操作与失败语义
 
-实验 9 输出 LayerManifest、segment-report.json、结构/家具/杂物分组二进制资产及其哈希。实验 8 根据 available 加载，未生成资产禁用图层并说明原因；实验 10 通过同一 manifest 和唯一坐标适配器装入，不拷贝私有数据进源码。页面默认剖切 1.5 m 仅影响渲染，导出与统计保留全高。原始证据、清理候选和设计占据可重叠显示，但颜色/图例/说明必须能区分。
+实验 9 输出 LayerManifest、segment-report.json、结构/家具/杂物分组几何资产及其哈希。实验 8 根据 available 加载，未生成资产禁用图层并说明原因；实验 10 通过同一 manifest 和唯一坐标适配器装入，不拷贝私有数据进源码。页面默认剖切 1.5 m 仅影响渲染，导出与统计保留全高。原始证据、清理候选和设计占据可重叠显示，但颜色/图例/说明必须能区分。
 
 任一输入缺失、hash/transform 不匹配或座标配准失败时，拒绝该派生层并保留原版编辑器可用；不得用零格、假物体或 Office 1 数据悄悄补 Office 2。用户体素编辑与扫描派生结果分库存储，带 scanId/revision；完整项目导出须包含或明确提示另行导出体素 JSON。

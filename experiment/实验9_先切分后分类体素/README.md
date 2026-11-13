@@ -14,7 +14,7 @@ python3 prepare_classified.py
 
 默认读取 `../.private/office-2/raw-mesh.ply`、`converted.json` 和 `source/Room/rooms/room-0.json`；只写 `../.private/office-2/derived-v1/`。所有 `--out` 必须在这个派生目录内，输入不得在输出子树内。缺源 PLY 即停止；Office 1 没有原包 LiDAR，本实验不伪造其结果，查看器可保留深度/TSDF 降级。
 
-从 experiment 目录启动静态服务后打开本目录：
+保持终端在本实验目录，将上一级 experiment 作为静态服务根目录：
 
 ```sh
 python3 -m http.server 5189 --bind 127.0.0.1 --directory ..

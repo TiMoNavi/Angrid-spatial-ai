@@ -38,3 +38,7 @@
 
 - 本地实验：experiment/扫描分层预览/README.md、prepare_segments.py；experiment/实验4_扫描结果的体素网格转换/分析.md；experiment/实验7_确定性层级体素/README.md 与 scanVoxelSegmentation.ts。
 - 产品与细化边界：原始简单的想法/原始想法.md、docs/体素专题——体素的妙用/体素专题分析.md、reference/VoxLution/voxel_grid_analysis.md。Open3D 官方平面分割、聚类与射线/占据 API 只能提供算法组件，不能替代针对本次扫描的人工边界验证。
+
+## 当前验收与后续任务
+
+实验 8、9、10 已完成独立验收和各自提交。结果与启动入口见 [VALIDATION.md](VALIDATION.md)，GitHub 上传回执以 [STATE.json](STATE.json) 的实际记录为准。框选拉伸、AI 范围提案和按语义细化分别列入 [NEXT_TASKS.md](NEXT_TASKS.md)，本轮没有把这些后续能力标为已实现。

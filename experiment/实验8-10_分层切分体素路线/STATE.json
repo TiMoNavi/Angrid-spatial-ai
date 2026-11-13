@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "updatedAt": "2026-11-14",
-  "status": "experiment10_in_progress",
-  "nextAction": "Integrate accepted E8 layers and E9 classified outputs into an isolated OpenPlan3D editor, then independently verify and push.",
+  "status": "three_experiments_accepted_pending_push",
+  "nextAction": "Audit and push codex/voxel-editor-v1 without force, verify the remote checkpoint, then commit the upload receipt. Future E11–13 work is queued in NEXT_TASKS.md and is not started by this run.",
   "scope": {
     "scanId": "office-2",
     "office1Policy": "Read-only depth/TSDF fallback. No original LiDAR mesh is fabricated.",
@@ -41,7 +41,7 @@
     "remote": "https://github.com/TiMoNavi/Angrid-spatial-ai.git",
     "experiment8Commit": "4298e9ac26ff459c3c6f3ec89e5d25f9904bbc6a",
     "experiment9Commit": "c925290ca96b1db8f8de9d2f65b0730cb2e3fbbd",
-    "experiment10Commit": null,
+    "experiment10Commit": "ff4631b7f55a6f2369161496c9f3935a2f69232d",
     "pushCommit": null,
     "pushedAt": null
   },
@@ -156,37 +156,52 @@
       ]
     },
     "E10-01": {
-      "status": "in_progress",
+      "status": "done",
       "dependsOn": [
         "E8-04",
         "E9-06"
       ],
-      "commit": null,
-      "evidence": []
+      "commit": "ff4631b7f55a6f2369161496c9f3935a2f69232d",
+      "evidence": [
+        "Independent E7 copy locked at 0e533b9; original OpenPlan UI retained; Office 1 real-data fallback",
+        "Per-layer hash failure isolation independently verified in Microsoft Edge"
+      ]
     },
     "E10-02": {
-      "status": "pending",
+      "status": "done",
       "dependsOn": [
         "E10-01"
       ],
-      "commit": null,
-      "evidence": []
+      "commit": "ff4631b7f55a6f2369161496c9f3935a2f69232d",
+      "evidence": [
+        "13 available sources/classified layers; one scanRegistration adapter",
+        "Actual OBB line picking and multi-owner conflict-cell picking verified; hidden-grid step cache regression passed"
+      ]
     },
     "E10-03": {
-      "status": "pending",
+      "status": "done",
       "dependsOn": [
         "E10-02"
       ],
-      "commit": null,
-      "evidence": []
+      "commit": "ff4631b7f55a6f2369161496c9f3935a2f69232d",
+      "evidence": [
+        "3×2×2=12-cell placement/name/move/90-degree rotation and volume-preserving 12→96 refinement",
+        "Identity-bound full plan/design export and restore; wrong scan/hash rejection and quota rollback",
+        "Parent independent Edge: 9 checks passed, 0 pageerrors; native 2D/3D and cross-scan persistence verified"
+      ]
     },
     "E10-04": {
-      "status": "pending",
+      "status": "in_progress",
       "dependsOn": [
         "E10-03"
       ],
-      "commit": null,
-      "evidence": []
+      "commit": "ff4631b7f55a6f2369161496c9f3935a2f69232d",
+      "evidence": [
+        "Microsoft Edge: 10 stages passed, 0 pageerrors, 0 failed scan asset requests",
+        "svelte-check: 0 errors/0 warnings; Vitest: 35 passed; voxel-core: 6 passed; production build succeeded",
+        "Native furniture picker/insertion and Undo verified independently from voxel design",
+        "304 staged source/documentation files passed privacy/size/secret/whitespace audit; upload receipt pending"
+      ]
     }
   },
   "measurements": {
@@ -219,6 +234,11 @@
       "at": "2026-11-14",
       "action": "experiment8_accepted_and_experiment10_authorized",
       "detail": "E8 committed as 4298e9a; E8/E9 acceptance gates passed. E10 authorized with preserved native OpenPlan UI, per-layer registry and identity-safe project saving."
+    },
+    {
+      "at": "2026-11-14",
+      "action": "experiment10_accepted",
+      "detail": "E10 committed as ff4631b7f55a6f2369161496c9f3935a2f69232d; Edge integration, independent parent checks, unit tests, type check and production build passed. No private assets or reference changes staged. Push gate now active."
     }
   ]
 }

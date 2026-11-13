@@ -6,6 +6,10 @@
   import { aiRenderMessages } from '$lib/i18n/aiRenderMessages';
   import { hasOpenModal } from '$lib/utils/modalDialog';
   import { onMount } from 'svelte';
+  import { base } from '$app/paths';
+  import { VoxelDocument } from '../../../../../voxel-core/index';
+  import { buildScanVoxelLayer, scanRegistration, type RegisteredScanRoom, type ScanLayerMode, type SurfaceCache } from './scanVoxelLayer';
+  import { loadScanReferenceLayer, type ScanReferenceKind, type ScanReferenceLayer } from './scanReferenceLayer';
   import { get } from 'svelte/store';
   import { openAISettings, setOpenAIModel } from '$lib/stores/aiKeys';
   import { generateOpenAIRenderImage, validateOpenAIConfig, getEffectiveModel, normalizeBaseUrl } from '$lib/utils/openaiClient';
@@ -83,6 +87,322 @@
   let renderedSignature: string | null = null;
   let framedContext: FramingContext | null = null;
   let wallGroup: THREE.Group;
+
+  // The voxel layer is independent of OpenPlan's editable architectural scene.
+  const voxelStorageKey = 'angrid-experiment7-voxel-v1';
+  let voxelGroup: THREE.Group | undefined;
+  let voxelVisible = $state(true);
+  let voxelStatus = $state('');
+  let currentScan = $state<'office-1' | 'office-2' | null>(null);
+  let scanRoom = $state.raw<RegisteredScanRoom | undefined>(undefined);
+  let surfaceCache: SurfaceCache | undefined;
+  let scanMode = $state<ScanLayerMode>('measured');
+  let scanSource = $state('fusion');
+  let scanStep = $state('0.2');
+  let buildingVisible = $state(false);
+  let selectedScanObject = $state<number | null>(null);
+  let selectedScanCount = $state(0);
+  let referenceKind = $state<'none' | ScanReferenceKind>('none');
+  let referenceLayer: ScanReferenceLayer | undefined;
+  let referenceController: AbortController | undefined;
+  let referenceStatus = $state('');
+  let loadSerial = 0;
+  async function loadVoxelLayer(frame = false) {
+    if (!scene) return;
+    const scan = currentScan;
+    if (scan === 'office-1' || scan === 'office-2') {
+      const serial = ++loadSerial;
+      voxelStatus = '扫描体素载入中…';
+      try {
+        if (!scanRoom || !surfaceCache) {
+          const [r, s] = await Promise.all([fetch(base + '/api/local-scan/' + scan), fetch(base + '/api/local-scan/' + scan + '/surface')]);
+          if (!r.ok || !s.ok) throw new Error('扫描缓存不可用 (' + r.status + '/' + s.status + ')');
+          const [room, surface] = await Promise.all([r.json(), s.json()]);
+          if (serial !== loadSerial) return;
+          scanRoom = room as RegisteredScanRoom;
+          surfaceCache = surface as SurfaceCache;
+        }
+        const grid = surfaceCache.sources[scanSource]?.grids[scanStep];
+        if (!grid) throw new Error('指定的扫描网格不存在');
+        const layer = buildScanVoxelLayer(scanRoom, grid, scanMode);
+        if (serial !== loadSerial) { clearGroup(layer.group); return; }
+        if (voxelGroup) { scene.remove(voxelGroup); clearGroup(voxelGroup); }
+        voxelGroup = layer.group;
+        voxelGroup.visible = voxelVisible;
+        scene.add(voxelGroup);
+        wallGroup.visible = buildingVisible;
+        renderEditedVoxels();
+        selectedScanCount = 0;
+        voxelGroup.children.forEach((mesh) => {
+          if (mesh.userData.objectIndex === selectedScanObject) selectedScanCount += mesh.userData.cellCount ?? 0;
+          mesh.visible = selectedScanObject === null || mesh.userData.objectIndex === selectedScanObject;
+        });
+        voxelStatus = scan + ' · ' + (scanMode === 'clean' ? 'RoomPlan 平整草模（融合网格坐标范围）' : scanSource + ' 实测扫描') + ' · ' + scanStep + ' 米 · ' + layer.cells.toLocaleString() + ' 格' + (layer.drawn < layer.cells ? '（抽显 ' + layer.drawn.toLocaleString() + '）' : '');
+        if (frame && layer.drawn) frameVoxelLayer();
+        markSceneDirty();
+      } catch (error) {
+        voxelStatus = '体素加载失败：' + (error instanceof Error ? error.message : String(error));
+      }
+      return;
+    }
+    const json = localStorage.getItem(voxelStorageKey);
+    if (!json) { voxelStatus = '尚无本地体素场景'; return; }
+    try {
+      const document = VoxelDocument.fromJSON(json);
+      const next = new THREE.Group();
+      const matrix = new THREE.Matrix4();
+      const colors = [0xc9ad82, 0x8aa5a1, 0xb5a4bd, 0xb6b08b, 0x9caec6];
+      let count = 0;
+      document.snapshot().objects.forEach((object, i) => {
+        if (!object.cells.length) return;
+        const mesh = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1),
+          new THREE.MeshStandardMaterial({ color: colors[i % colors.length], roughness: 0.8 }), object.cells.length);
+        mesh.userData.objectId = object.id;
+        object.cells.forEach((cell, index) => {
+          const size = object.baseStep / 2 ** cell.level * 100 * 0.985;
+          const center = document.cellWorldCenter(object.id, cell);
+          matrix.makeScale(size, size, size);
+          matrix.setPosition(center[0] * 100, center[1] * 100, center[2] * 100);
+          mesh.setMatrixAt(index, matrix);
+        });
+        mesh.instanceMatrix.needsUpdate = true;
+        mesh.computeBoundingSphere();
+        next.add(mesh);
+        count += object.cells.length;
+      });
+      if (voxelGroup) { scene.remove(voxelGroup); clearGroup(voxelGroup); }
+      voxelGroup = next;
+      voxelGroup.visible = voxelVisible;
+      scene.add(voxelGroup);
+      voxelStatus = `本地体素：${count} 格`;
+      if (frame && count) frameVoxelLayer();
+      markSceneDirty();
+    } catch (error) {
+      voxelStatus = `体素加载失败：${error instanceof Error ? error.message : String(error)}`;
+    }
+  }
+  function frameVoxelLayer() {
+    if (!voxelGroup || !voxelGroup.children.length) return;
+    frameScene(camera, new THREE.Box3().setFromObject(voxelGroup), controls.target);
+    markSceneDirty();
+  }
+  function toggleVoxelLayer() {
+    voxelVisible = !voxelVisible;
+    if (voxelGroup) voxelGroup.visible = voxelVisible;
+    markSceneDirty();
+  }
+  function chooseScanObject(index: number | null) {
+    selectedScanObject = index;
+    selectedScanCount = 0;
+    voxelGroup?.children.forEach((mesh) => {
+      mesh.visible = index === null || mesh.userData.objectIndex === index;
+      if (mesh.userData.objectIndex === index) selectedScanCount += mesh.userData.cellCount ?? 0;
+    });
+    markSceneDirty();
+  }
+  function toggleBuilding() {
+    buildingVisible = !buildingVisible;
+    if (wallGroup) wallGroup.visible = buildingVisible;
+    markSceneDirty();
+  }
+  async function chooseReference(kind: 'none' | ScanReferenceKind) {
+    referenceKind = kind;
+    referenceController?.abort();
+    if (referenceLayer) {
+      scene.remove(referenceLayer.object);
+      referenceLayer.dispose();
+      referenceLayer = undefined;
+    }
+    referenceStatus = '';
+    markSceneDirty();
+    if (kind === 'none') return;
+    const scan = currentScan;
+    if ((scan !== 'office-1' && scan !== 'office-2') || !scanRoom) return;
+    const controller = new AbortController();
+    referenceController = controller;
+    referenceStatus = '原始参考层载入中…';
+    try {
+      const layer = await loadScanReferenceLayer(scan, kind, scanRoom, controller.signal);
+      if (controller.signal.aborted) { layer.dispose(); return; }
+      referenceLayer = layer;
+      scene.add(layer.object);
+      referenceStatus = kind + ' · ' + layer.vertexCount.toLocaleString() + ' 顶点';
+      markSceneDirty();
+    } catch (error) {
+      if (!controller.signal.aborted) referenceStatus = error instanceof Error ? error.message : String(error);
+    }
+  }
+  let editedDocument = new VoxelDocument();
+  let editedGroup: THREE.Group | undefined;
+  let editedObjects = $state<{ id: string; name: string; cells: number }[]>([]);
+  let selectedEditedId = $state<string | null>(null);
+  let placementMode = $state(false);
+  let boxName = $state('新体素盒');
+  let boxSemantic = $state('furniture');
+  let boxWidth = $state(3), boxHeight = $state(2), boxDepth = $state(2);
+  let boxStep = $state(0.2);
+  let editName = $state('');
+  let editStatus = $state('');
+  function editedStorageKey(scan: string): string { return 'angrid-experiment7-edited-' + scan + '-v1'; }
+  function loadEditedDocument(scan: string) {
+    try {
+      const json = localStorage.getItem(editedStorageKey(scan));
+      editedDocument = json ? VoxelDocument.fromJSON(json) : new VoxelDocument();
+      renderEditedVoxels();
+    } catch (error) {
+      editStatus = '保存的体素盒读取失败：' + (error instanceof Error ? error.message : String(error));
+    }
+  }
+  function renderEditedVoxels() {
+    if (!scanRoom || !scene) return;
+    if (editedGroup) { scene.remove(editedGroup); clearGroup(editedGroup); }
+    const next = new THREE.Group();
+    next.name = '用户编辑的体素盒';
+    const registration = scanRegistration(scanRoom);
+    const matrix = new THREE.Matrix4();
+    const scale = new THREE.Vector3();
+    const box = new THREE.BoxGeometry(1, 1, 1);
+    const objects = editedDocument.snapshot().objects;
+    objects.forEach((object, index) => {
+      if (!object.cells.length) return;
+      const selected = object.id === selectedEditedId;
+      const mesh = new THREE.InstancedMesh(box, new THREE.MeshStandardMaterial({
+        color: selected ? 0xffce60 : [0xeba685, 0xb99bdb, 0x90c9bd, 0xd3bc83][index % 4],
+        roughness: 0.8
+      }), object.cells.length);
+      mesh.name = object.name;
+      mesh.userData = { editableVoxelId: object.id, semantic: object.semantic };
+      object.cells.forEach((cell, cellIndex) => {
+        const center = editedDocument.cellWorldCenter(object.id, cell);
+        const size = object.baseStep / 2 ** cell.level * 100 * 0.965;
+        scale.setScalar(size);
+        matrix.compose(registration.point(...center), registration.orientation, scale);
+        mesh.setMatrixAt(cellIndex, matrix);
+      });
+      mesh.instanceMatrix.needsUpdate = true;
+      mesh.computeBoundingSphere();
+      next.add(mesh);
+    });
+    editedGroup = next;
+    scene.add(next);
+    editedObjects = objects.map((object) => ({ id: object.id, name: object.name, cells: object.cells.length }));
+    markSceneDirty();
+  }
+  function saveEditedDocument(): boolean {
+    if (!currentScan) return false;
+    try {
+      localStorage.setItem(editedStorageKey(currentScan), editedDocument.toJSON());
+      renderEditedVoxels();
+      editStatus = '已保存在浏览器中（' + currentScan + ' 专属）';
+      return true;
+    } catch (error) {
+      editStatus = '体素盒保存失败：' + (error instanceof Error ? error.message : String(error));
+      return false;
+    }
+  }
+  function exportEditedJSON() {
+    if (!currentScan) return;
+    const url = URL.createObjectURL(new Blob([editedDocument.toJSON()], { type: 'application/json' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = currentScan + '-voxel-edits.json';
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+  async function importEditedJSON(event: Event) {
+    const input = event.currentTarget as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    try {
+      const imported = VoxelDocument.fromJSON(await file.text());
+      editedDocument = imported;
+      selectedEditedId = null;
+      if (saveEditedDocument()) editStatus = '已导入 ' + imported.snapshot().objects.length + ' 个体素盒';
+    } catch (error) {
+      editStatus = '导入失败：' + (error instanceof Error ? error.message : String(error));
+    } finally { input.value = ''; }
+  }
+  function placeVoxelBox(worldPoint: THREE.Vector3) {
+    if (!scanRoom || !currentScan) return;
+    try {
+      const step = Number(boxStep);
+      const dimensions: [number, number, number] = [Number(boxWidth), Number(boxHeight), Number(boxDepth)];
+      if (!Number.isFinite(step) || step <= 0 || dimensions.some((n) => !Number.isSafeInteger(n) || n < 1)) {
+        throw new Error('请输入正数格长和正整数尺寸');
+      }
+      const lattice = surfaceCache?.sources.fusion?.grids[String(step)];
+      if (!lattice) throw new Error('请选择扫描缓存支持的格长');
+      const local = scanRegistration(scanRoom).roomPoint(worldPoint.x, worldPoint.y, worldPoint.z);
+      const snap = (value: number, axis: 0 | 1 | 2) => Math.round((lattice.origin[axis] + Math.floor((value - lattice.origin[axis]) / step) * step) * 10000) / 10000;
+      const snapAbove = (value: number) => Math.round((lattice.origin[1] + Math.ceil((value - lattice.origin[1] - 1e-6) / step) * step) * 10000) / 10000;
+      const origin: [number, number, number] = [snap(local.x, 0), snapAbove(Math.max(0, local.y)), snap(local.z, 2)];
+      const id = crypto.randomUUID();
+      editedDocument.createBox({ id, name: boxName.trim() || '新体素盒', semantic: boxSemantic.trim() || 'object',
+        baseStep: step, origin, dimensions });
+      selectedEditedId = id;
+      editName = boxName.trim() || '新体素盒';
+      placementMode = false;
+      saveEditedDocument();
+    } catch (error) {
+      editStatus = error instanceof Error ? error.message : String(error);
+    }
+  }
+  function moveEdited(axis: 0 | 1 | 2, direction: -1 | 1) {
+    if (!selectedEditedId) return;
+    const object = editedDocument.getObject(selectedEditedId);
+    if (!object) return;
+    const origin: [number, number, number] = [...object.origin];
+    origin[axis] = Math.round((origin[axis] + direction * object.placementStep) * 10000) / 10000;
+    editedDocument.move(object.id, origin);
+    saveEditedDocument();
+  }
+  function rotateEdited() {
+    if (!selectedEditedId) return;
+    const object = editedDocument.getObject(selectedEditedId);
+    if (!object) return;
+    editedDocument.rotate(object.id, ((object.quarterTurns + 1) % 4) as 0 | 1 | 2 | 3);
+    saveEditedDocument();
+  }
+  function selectEdited(id: string) {
+    selectedEditedId = id;
+    editName = editedDocument.getObject(id)?.name ?? '';
+    renderEditedVoxels();
+  }
+  function renameEdited() {
+    if (!selectedEditedId) return;
+    try { editedDocument.rename(selectedEditedId, editName); saveEditedDocument(); }
+    catch (error) { editStatus = error instanceof Error ? error.message : String(error); }
+  }
+  function deleteEdited() {
+    if (!selectedEditedId) return;
+    editedDocument.deleteObject(selectedEditedId);
+    selectedEditedId = null;
+    saveEditedDocument();
+  }
+  function handleVoxelClick(event: PointerEvent): boolean {
+    if (!currentScan || !scanRoom) return false;
+    const rect = renderer.domElement.getBoundingClientRect();
+    mouse.set(((event.clientX - rect.left) / rect.width) * 2 - 1, -((event.clientY - rect.top) / rect.height) * 2 + 1);
+    raycaster.setFromCamera(mouse, camera);
+    if (placementMode) {
+      const hits = voxelGroup ? raycaster.intersectObjects(voxelGroup.children, false) : [];
+      const point = hits[0]?.point ?? raycaster.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), new THREE.Vector3());
+      if (!point) { editStatus = '请点击房间地面或扫描体素'; return true; }
+      placeVoxelBox(point);
+      return true;
+    }
+    const hit = raycaster.intersectObjects(editedGroup?.children ?? [], false)[0];
+    if (hit?.object.userData.editableVoxelId) {
+      selectEdited(hit.object.userData.editableVoxelId as string);
+      return true;
+    }
+    const scanHit = voxelVisible ? raycaster.intersectObjects(voxelGroup?.children ?? [], false)[0] : undefined;
+    if (typeof scanHit?.object.userData.objectIndex === 'number') {
+      chooseScanObject(scanHit.object.userData.objectIndex);
+      return true;
+    }
+    return false;
+  }
 
   // Raycasting for wall selection in 3D
   const raycaster = new THREE.Raycaster();
@@ -857,11 +1177,12 @@
     });
     renderer.domElement.addEventListener('pointerup', (e) => {
       // Only select in edit mode, and only if mouse didn't move much (not a drag/orbit)
-      if (!editMode) return;
       const dx = e.clientX - pointerDownPos.x;
       const dy = e.clientY - pointerDownPos.y;
       if (Math.hypot(dx, dy) > 5) return;
       if (walkthroughMode) return;
+      if (handleVoxelClick(e)) return;
+      if (!editMode) return;
 
       const rect = renderer.domElement.getBoundingClientRect();
       mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
@@ -2072,6 +2393,7 @@
       buildWalls(currentFloor);
       buildStairwell(stairwellView(project.floors, currentFloor.id));
     }
+    wallGroup.visible = !currentScan || buildingVisible;
     // Fit the orbit camera only for a new project, floor or stacking choice, so edits, Undo/Redo,
     // unit changes and arriving textures keep the user's view. Walkthrough restores its pose below.
     const context = framingContext(project, currentFloor, showAllFloors);
@@ -2275,6 +2597,8 @@
   }
 
   onMount(() => {
+    const scanParam = new URLSearchParams(window.location.search).get('scan');
+    currentScan = scanParam === 'office-1' || scanParam === 'office-2' ? scanParam : null;
     const stopAISettings = openAISettings.subscribe(config => {
       cancelAIRender();
       openaiModel = getEffectiveModel(config);
@@ -2284,7 +2608,7 @@
     viewerMounted = true;
     markSceneDirty();
     // The one-time tip offers orbit and walkthrough, so only a view with a renderer uses it up.
-    triggerTip('first-3d', 200, 80);
+    if (!currentScan) triggerTip('first-3d', 200, 80);
 
     // Rebuild 3D scene when photo textures finish loading
     const stopTextures = setTextureLoadCallback(() => {
@@ -2303,6 +2627,11 @@
       currentFloor = f;
       if (f) rebuildScene();
     });
+    if (currentScan) loadEditedDocument(currentScan);
+    loadVoxelLayer(true);
+    const refreshVoxels = () => loadVoxelLayer();
+    window.addEventListener('angrid-voxel-updated', refreshVoxels);
+    window.addEventListener('storage', refreshVoxels);
     // Room area labels are textures and must refresh when display units change.
     const stopSettings = projectSettings.subscribe(() => {
       if (currentFloor) rebuildScene();
@@ -2316,6 +2645,11 @@
 
     return () => {
       viewerMounted = false;
+      loadSerial++;
+      referenceController?.abort();
+      if (referenceLayer) { scene.remove(referenceLayer.object); referenceLayer.dispose(); referenceLayer = undefined; }
+      window.removeEventListener('angrid-voxel-updated', refreshVoxels);
+      window.removeEventListener('storage', refreshVoxels);
       cancelAIRender();
       stopAISettings();
       stopTextures();
@@ -2375,6 +2709,97 @@
       </div>
     </div>
   {/if}
+  <div class="absolute top-16 left-4 z-40 max-h-[calc(100%-13rem)] w-[min(20rem,calc(100%-2rem))] overflow-y-auto rounded-lg bg-slate-950/90 p-3 text-xs text-white shadow-xl">
+    <div class="mb-2 flex items-center justify-between gap-2">
+      <strong class="text-sm">iPhone 扫描体素</strong>
+      <button class="rounded bg-white/15 px-2 py-1 hover:bg-white/25" onclick={() => loadVoxelLayer(true)}>刷新定位</button>
+    </div>
+    <div data-testid="scan-voxel-status" role="status" class="mb-2 text-sky-200">{voxelStatus}</div>
+    {#if currentScan}
+      <div class="mb-2 flex gap-1">
+        <a href={base + '/editor?scan=office-1'} data-sveltekit-reload class:font-bold={currentScan === 'office-1'} class="rounded bg-white/10 px-2 py-1 hover:bg-white/20">第一次扫描</a>
+        <a href={base + '/editor?scan=office-2'} data-sveltekit-reload class:font-bold={currentScan === 'office-2'} class="rounded bg-white/10 px-2 py-1 hover:bg-white/20">第二次扫描</a>
+      </div>
+      <div class="grid grid-cols-2 gap-2">
+        <label class="grid gap-1">体素层
+          <select aria-label="体素层" bind:value={scanMode} onchange={() => { if (scanMode === 'clean') scanSource = 'fusion'; loadVoxelLayer(); }} class="rounded bg-slate-700 p-1.5">
+            <option value="measured">实测表面方块</option><option value="clean">平整语义草模</option><option value="both">实测 + 平整</option>
+          </select>
+        </label>
+        <label class="grid gap-1">采样来源（实测层）
+          <select aria-label="采样来源" disabled={scanMode === 'clean'} bind:value={scanSource} onchange={() => loadVoxelLayer()} class="rounded bg-slate-700 p-1.5 disabled:opacity-50">
+            <option value="fusion">TSDF 融合网格</option><option value="ply" disabled={currentScan === 'office-1'}>LiDAR PLY 网格</option>
+          </select>
+        </label>
+        <label class="grid gap-1">格子边长
+          <select aria-label="格子边长" bind:value={scanStep} onchange={() => loadVoxelLayer()} class="rounded bg-slate-700 p-1.5">
+            <option value="0.2">20 厘米</option><option value="0.1">10 厘米</option><option value="0.05">5 厘米</option><option value="0.025">2.5 厘米</option>
+          </select>
+        </label>
+        <label class="grid gap-1">原始证据
+          <select aria-label="原始证据" bind:value={referenceKind} onchange={() => chooseReference(referenceKind)} class="rounded bg-slate-700 p-1.5">
+            <option value="none">关闭</option><option value="fusion">TSDF 网格</option><option value="raw" disabled={currentScan === 'office-1'}>原包 LiDAR</option><option value="depth">全帧深度点</option>
+          </select>
+        </label>
+      </div>
+      <div class="mt-2 flex gap-1">
+        <button aria-pressed={voxelVisible} class="rounded bg-white/10 px-2 py-1 hover:bg-white/20" onclick={toggleVoxelLayer}>{voxelVisible ? '隐藏体素' : '显示体素'}</button>
+        <button aria-pressed={buildingVisible} class="rounded bg-white/10 px-2 py-1 hover:bg-white/20" onclick={toggleBuilding}>{buildingVisible ? '隐藏建筑模型' : '显示建筑模型'}</button>
+      </div>
+      {#if referenceStatus}<p role="status" class="mt-2 text-amber-200">{referenceStatus}</p>{/if}
+      <p class="mt-1 text-[11px] text-slate-400">原始参考层为 TSDF、LiDAR 与深度点；扫描资料中暂无真实 Gaussian splat 文件。</p>
+      {#if scanRoom?.objects?.length}
+        <div class="mt-3 border-t border-white/20 pt-2">
+          <div class="mb-1 font-semibold">物体关联（包围盒近似，非精确切分）</div>
+          <div class="flex flex-wrap gap-1">
+            <button aria-pressed={selectedScanObject === null} onclick={() => chooseScanObject(null)} class="rounded bg-white/10 px-2 py-1 hover:bg-white/20">全部</button>
+            {#each scanRoom.objects as item, index}
+              <button aria-pressed={selectedScanObject === index} onclick={() => chooseScanObject(index)} class="rounded bg-white/10 px-2 py-1 hover:bg-white/20">{item.category} {index + 1}</button>
+            {/each}
+          </div>
+          {#if selectedScanObject !== null}<p class="mt-1 text-slate-300">关联 {selectedScanCount.toLocaleString()} 格，可点击单独查看。</p>{/if}
+        </div>
+      {/if}
+      <div class="mt-3 border-t border-white/20 pt-2" data-testid="scan-voxel-editor">
+        <div class="mb-1 font-semibold">在扫描房间中摆放体素盒</div>
+        <p class="mb-2 text-[11px] text-slate-400">体素盒独立保存在本浏览器；OpenPlan 原生项目保存不包含它们。</p>
+        <div class="grid grid-cols-2 gap-2">
+          <label class="grid gap-1">名称<input aria-label="新盒名称" bind:value={boxName} class="min-w-0 rounded bg-slate-700 p-1.5" /></label>
+          <label class="grid gap-1">语义<input aria-label="新盒语义" bind:value={boxSemantic} class="min-w-0 rounded bg-slate-700 p-1.5" /></label>
+        </div>
+        <div class="mt-2 grid grid-cols-4 gap-1">
+          <label class="grid gap-1">X 格<input aria-label="X 格数" type="number" min="1" max="100" bind:value={boxWidth} class="min-w-0 rounded bg-slate-700 p-1.5" /></label>
+          <label class="grid gap-1">Y 格<input aria-label="Y 格数" type="number" min="1" max="100" bind:value={boxHeight} class="min-w-0 rounded bg-slate-700 p-1.5" /></label>
+          <label class="grid gap-1">Z 格<input aria-label="Z 格数" type="number" min="1" max="100" bind:value={boxDepth} class="min-w-0 rounded bg-slate-700 p-1.5" /></label>
+          <label class="grid gap-1">米/格<select aria-label="盒体格长" bind:value={boxStep} class="min-w-0 rounded bg-slate-700 p-1.5"><option value={0.2}>0.2</option><option value={0.1}>0.1</option><option value={0.05}>0.05</option><option value={0.025}>0.025</option></select></label>
+        </div>
+        <button data-testid="scan-place-box" aria-pressed={placementMode} onclick={() => { placementMode = !placementMode; editStatus = placementMode ? '点击画布中的地面或扫描方块放置' : ''; }} class="mt-2 rounded bg-amber-600 px-3 py-1.5 font-semibold hover:bg-amber-500">{placementMode ? '取消放置' : '点击放置 A×B×C 体素盒'}</button>
+        {#if editStatus}<p role="status" class="mt-1 text-amber-200">{editStatus}</p>{/if}
+        {#if editedObjects.length}
+          <div class="mt-2 flex flex-wrap gap-1">
+            {#each editedObjects as object (object.id)}
+              <button aria-pressed={selectedEditedId === object.id} onclick={() => selectEdited(object.id)} class="rounded bg-white/10 px-2 py-1 hover:bg-white/20">{object.name} · {object.cells} 格</button>
+            {/each}
+          </div>
+        {/if}
+        {#if selectedEditedId}
+          <div class="mt-2 flex gap-1"><input aria-label="已选盒名称" bind:value={editName} class="min-w-0 flex-1 rounded bg-slate-700 p-1.5" /><button onclick={renameEdited} class="rounded bg-white/10 px-2">改名</button></div>
+          <div class="mt-2 flex flex-wrap gap-1">
+            <button onclick={() => moveEdited(0, -1)} class="rounded bg-white/10 px-2 py-1">X−</button><button onclick={() => moveEdited(0, 1)} class="rounded bg-white/10 px-2 py-1">X+</button>
+            <button onclick={() => moveEdited(2, -1)} class="rounded bg-white/10 px-2 py-1">Z−</button><button onclick={() => moveEdited(2, 1)} class="rounded bg-white/10 px-2 py-1">Z+</button>
+            <button onclick={() => moveEdited(1, -1)} class="rounded bg-white/10 px-2 py-1">Y−</button><button onclick={() => moveEdited(1, 1)} class="rounded bg-white/10 px-2 py-1">Y+</button>
+            <button onclick={rotateEdited} class="rounded bg-white/10 px-2 py-1">旋转 90°</button><button onclick={deleteEdited} class="rounded bg-red-800/70 px-2 py-1">删除</button>
+          </div>
+        {/if}
+        <div class="mt-3 flex items-center gap-2 border-t border-white/20 pt-2">
+          <button onclick={exportEditedJSON} class="rounded bg-white/10 px-2 py-1 hover:bg-white/20">导出体素 JSON</button>
+          <label class="cursor-pointer rounded bg-white/10 px-2 py-1 hover:bg-white/20">导入体素 JSON<input aria-label="导入体素 JSON" type="file" accept="application/json,.json" onchange={importEditedJSON} class="sr-only" /></label>
+        </div>
+      </div>
+    {:else}
+      <a class="rounded bg-white/10 px-2 py-1 hover:bg-white/20" href="/voxel" target="_blank" rel="noopener">体素编辑</a>
+    {/if}
+  </div>
   <!-- 3D Toolbar Row -->
   <div class="absolute top-4 right-4 z-50 flex gap-1.5">
     <!-- Multi-Floor Stacking Toggle -->

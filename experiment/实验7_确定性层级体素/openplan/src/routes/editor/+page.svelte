@@ -134,6 +134,41 @@
     try {
       const url = new URL(window.location.href);
 
+      // This experiment opens the latest usable iPhone scan by default. Explicit
+      // project IDs and iOS handoff links keep their original OpenPlan3D flow.
+      const savedScan = /^experiment7-(office-[12])-registered-v2$/.exec(url.searchParams.get('id') ?? '')?.[1];
+      const scan = url.searchParams.get('scan') ?? savedScan
+        ?? (!url.searchParams.has('id') && !url.searchParams.has('import') ? 'office-2' : null);
+      if (scan) {
+        if (scan !== 'office-1' && scan !== 'office-2') throw new Error('未知的本地扫描。');
+        // Version this local project because the previous import had orthogonalized
+        // the walls, while scan evidence is registered to the original capture.
+        // Keeping its old ID avoids overwriting any edits made in that project.
+        const scanProjectId = `experiment7-${scan}-registered-v2`;
+        let project = await localStore.load(scanProjectId);
+        if (!project) {
+          const response = await fetch(`${base}/api/local-scan/${scan}/roomplan`);
+          if (!response.ok) throw new Error(`无法读取本地扫描 ${scan} (${response.status})。`);
+          const data = await response.json();
+          if (!isRoomPlanJson(data)) throw new Error('扫描的 RoomPlan 数据格式无效。');
+          project = createProjectFromRoomPlan(data, `iPhone 扫描 ${scan}`, {
+            orthogonal: false, straighten: false, mergeDistance: 0
+          });
+          project.id = scanProjectId;
+          loadProject(project);
+          await autoSave();
+        } else {
+          loadProject(project);
+          markClean();
+        }
+        url.searchParams.set('id', scanProjectId);
+        url.searchParams.set('scan', scan);
+        replaceState(url, page.state);
+        viewMode.set('3d');
+        ready = true;
+        return;
+      }
+
       // iOS capture handoff: ?import=CODE
       const rawCode = url.searchParams.get('import');
       if (rawCode) {
@@ -187,6 +222,7 @@
       const url = new URL(window.location.href);
       if (url.searchParams.get('id') === project.id) return;
       url.searchParams.delete('import');
+      if (url.searchParams.get('scan') && project.id !== `experiment7-${url.searchParams.get('scan')}-registered-v2`) url.searchParams.delete('scan');
       url.searchParams.set('id', project.id);
       replaceState(url, page.state);
     });

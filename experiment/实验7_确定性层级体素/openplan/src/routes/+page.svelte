@@ -195,6 +195,18 @@
   </div>
 
   <div class="max-w-5xl mx-auto px-6 py-8">
+    <section aria-label="iPhone 离线扫描" class="mb-6 rounded-xl border border-teal-200 bg-teal-50 p-5 text-slate-800">
+      <div class="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h2 class="font-semibold">继续编辑 iPhone 房间扫描</h2>
+          <p class="mt-1 text-sm text-slate-600">在原版 3D 编辑器中查看扫描表面体素、平整网格与语义物体。</p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <a href={`${base}/editor?scan=office-2`} class="rounded-lg bg-teal-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-teal-800">打开第二次扫描</a>
+          <a href={`${base}/editor?scan=office-1`} class="rounded-lg border border-teal-300 bg-white px-4 py-2.5 text-sm font-medium text-teal-800 hover:bg-teal-100">第一次扫描</a>
+        </div>
+      </div>
+    </section>
     {#if duplicating}<p role="status" class="mb-4 text-sm text-gray-500">{$t('library.duplicating')}</p>
     {:else}
       {@const copy = projects.find(project => project.id === duplicatedId)}

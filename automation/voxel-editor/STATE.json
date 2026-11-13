@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-11-13T19:04:27Z",
+  "updatedAt": "2026-11-13T19:13:44Z",
   "branch": "codex/voxel-editor-v1",
   "note": "远端仓库为公开仓库；推送前核对提交和隐私。本状态以任务 ID 为唯一事实来源。",
   "tasks": {
@@ -146,12 +146,17 @@
       "updatedAt": null
     },
     "P0-04": {
-      "status": "in_progress",
-      "checkpoint": null,
-      "evidence": [],
+      "status": "done",
+      "checkpoint": "08903f3ecf2b6df6362de5d1c1c2d8e97f85c601",
+      "evidence": [
+        "fetch_openplan3d.py: pinned revision 的 1156 个上游普通文件 SHA-256 全通过，未覆盖 reference",
+        "taskctl.py validate: 20 tasks/DAG/限定路径通过；Python unittest: 11 tests OK；79 个文档本地链接存在；git diff --check 通过",
+        "三份子代理研究与综合方案已核对源码/官方来源；确认 RoomPlan 原始实例 ID 在旧转换中丢失，新增归属冲突/人工拆合验收；真体素、自动分割与 AI 功能仍未实现"
+      ],
       "reason": null,
-      "updatedAt": "2026-11-13T19:04:27Z",
-      "startedAt": "2026-11-13T19:04:27Z"
+      "updatedAt": "2026-11-13T19:13:44Z",
+      "startedAt": "2026-11-13T19:04:27Z",
+      "completedAt": "2026-11-13T19:13:44Z"
     },
     "P2-00": {
       "status": "pending",
@@ -379,6 +384,30 @@
       "task": "P0-04",
       "action": "start",
       "detail": "已领取；请先保存相关文件的 Git diff，再开始修改"
+    },
+    {
+      "at": "2026-11-13T19:13:44Z",
+      "task": "P0-04",
+      "action": "complete",
+      "detail": {
+        "commit": "08903f3ecf2b6df6362de5d1c1c2d8e97f85c601",
+        "files": [
+          "automation/voxel-editor/BASELINE_REUSE.md",
+          "automation/voxel-editor/HANDOFF.md",
+          "automation/voxel-editor/README.md",
+          "automation/voxel-editor/ROADMAP.md",
+          "automation/voxel-editor/RUNBOOK.md",
+          "automation/voxel-editor/STATE.json",
+          "automation/voxel-editor/TASKS.json",
+          "automation/voxel-editor/VOXEL_EDITOR_V2.md",
+          "automation/voxel-editor/fetch_openplan3d.py",
+          "automation/voxel-editor/openplan3d-integration-assessment.md",
+          "automation/voxel-editor/openplan3d-upstream-manifest.json",
+          "automation/voxel-editor/realtime-voxel-research.md",
+          "automation/voxel-editor/voxlution-transfer-assessment.md"
+        ],
+        "privacyReminder": "路径核验不等于内容隐私核验；推送前仍须检查 diff，尤其是 JSON 与日志。"
+      }
     }
   ]
 }

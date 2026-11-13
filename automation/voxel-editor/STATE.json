@@ -1,0 +1,115 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-11-14",
+  "branch": "codex/voxel-editor-v1",
+  "note": "远端仓库为公开仓库；推送前核对提交和隐私。本状态以任务 ID 为唯一事实来源。",
+  "tasks": {
+    "P0-01": {
+      "status": "done",
+      "checkpoint": "2f9393b",
+      "evidence": [
+        "实验 1–5 本地基线已检查，无私有扫描资产"
+      ],
+      "reason": null,
+      "updatedAt": null
+    },
+    "P0-02": {
+      "status": "in_progress",
+      "checkpoint": null,
+      "evidence": [],
+      "reason": null,
+      "updatedAt": null
+    },
+    "P0-03": {
+      "status": "pending",
+      "checkpoint": null,
+      "evidence": [],
+      "reason": null,
+      "updatedAt": null
+    },
+    "P1-01": {
+      "status": "pending",
+      "checkpoint": null,
+      "evidence": [],
+      "reason": null,
+      "updatedAt": null
+    },
+    "P1-02": {
+      "status": "pending",
+      "checkpoint": null,
+      "evidence": [],
+      "reason": null,
+      "updatedAt": null
+    },
+    "P1-03": {
+      "status": "pending",
+      "checkpoint": null,
+      "evidence": [],
+      "reason": null,
+      "updatedAt": null
+    },
+    "P1-04": {
+      "status": "pending",
+      "checkpoint": null,
+      "evidence": [],
+      "reason": null,
+      "updatedAt": null
+    },
+    "P1-05": {
+      "status": "pending",
+      "checkpoint": null,
+      "evidence": [],
+      "reason": null,
+      "updatedAt": null
+    },
+    "P2-01": {
+      "status": "pending",
+      "checkpoint": null,
+      "evidence": [],
+      "reason": null,
+      "updatedAt": null
+    },
+    "P2-02": {
+      "status": "pending",
+      "checkpoint": null,
+      "evidence": [],
+      "reason": null,
+      "updatedAt": null
+    },
+    "P3-01": {
+      "status": "pending",
+      "checkpoint": null,
+      "evidence": [],
+      "reason": null,
+      "updatedAt": null
+    },
+    "P3-02": {
+      "status": "pending",
+      "checkpoint": null,
+      "evidence": [],
+      "reason": null,
+      "updatedAt": null
+    },
+    "P3-03": {
+      "status": "pending",
+      "checkpoint": null,
+      "evidence": [],
+      "reason": null,
+      "updatedAt": null
+    },
+    "P4-01": {
+      "status": "pending",
+      "checkpoint": null,
+      "evidence": [],
+      "reason": null,
+      "updatedAt": null
+    },
+    "P4-02": {
+      "status": "pending",
+      "checkpoint": null,
+      "evidence": [],
+      "reason": null,
+      "updatedAt": null
+    }
+  }
+}

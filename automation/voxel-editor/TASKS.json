@@ -1,0 +1,447 @@
+{
+  "schemaVersion": 1,
+  "project": "离线扫描后的游戏式体素编辑器",
+  "baseline": {
+    "readonly": "reference/3d-model-anything/",
+    "viewer": "reference/3d-model-anything/demos/",
+    "skill": "reference/3d-model-anything/.agents/skills/scan-to-threejs/SKILL.md",
+    "planningDoc": "experiment/实验5_游戏式体素编辑/目标与实现方案.md",
+    "capturePolicy": "iPhone 采集端与原始 ZIP 暂不改；沿用离线传输；扫描证据只读。",
+    "viewerLayout": "reference/3d-model-anything/apps/room-viewer/src/layout.ts",
+    "viewerShell": "reference/3d-model-anything/apps/room-viewer/",
+    "runtimeTypes": "reference/3d-model-anything/packages/room-runtime/types.ts",
+    "reuseGuide": "automation/voxel-editor/BASELINE_REUSE.md",
+    "skillCopyPolicy": "实验 8 完整复制 scan-to-threejs Skill 为可追溯的只读 upstream 快照，再新增体素编辑规则；不修改 reference。"
+  },
+  "stages": [
+    {
+      "id": "P0",
+      "name": "基线与自动执行护栏",
+      "experiment": "实验5：方案与任务机制",
+      "goal": "可复核基线、隔离任务、限定路径 Git 回档"
+    },
+    {
+      "id": "P1",
+      "name": "平整语义房间与游戏式编辑器",
+      "experiment": "experiment/实验6_平整语义房间与编辑器/",
+      "goal": "RoomPlan 粗结构、平整承载面、直观框选拉伸与保存"
+    },
+    {
+      "id": "P2",
+      "name": "确定性层级体素",
+      "experiment": "experiment/实验7_确定性层级体素/",
+      "goal": "全局/局部格密度变化不改变米制几何，局部细节有父层"
+    },
+    {
+      "id": "P3",
+      "name": "受约束的 AI 生成",
+      "experiment": "experiment/实验8_AI体素命令与局部细化/",
+      "goal": "结构化命令、派生 Skill、本机服务、局部几何细化"
+    },
+    {
+      "id": "P4",
+      "name": "批量细化与可用性验证",
+      "experiment": "experiment/实验9_批量细化与可用性验证/",
+      "goal": "逐件预览、失败隔离、适老化交互检验"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "P0-01",
+      "stage": "P0",
+      "title": "保存实验 1–5 的本地 Git 基线",
+      "dependsOn": [],
+      "allowedPaths": [
+        "experiment/"
+      ],
+      "acceptance": [
+        "存在可回看的提交 2f9393b",
+        "提交不含 ZIP、图片或 experiment/.private/ 扫描资产",
+        "不改原版参考目录"
+      ],
+      "commands": [
+        "git show --stat 2f9393b",
+        "git show --name-only --format= 2f9393b"
+      ]
+    },
+    {
+      "id": "P0-02",
+      "stage": "P0",
+      "title": "建立自动任务与安全回档机制",
+      "dependsOn": [
+        "P0-01"
+      ],
+      "allowedPaths": [
+        "automation/voxel-editor/"
+      ],
+      "acceptance": [
+        "TASKS.json 的依赖无环、路径受限",
+        "STATE.json 可记录开始、完成、受阻、重试与对应提交",
+        "回档仅按任务允许路径恢复，不用全仓 hard reset"
+      ],
+      "commands": [
+        "python3 automation/voxel-editor/taskctl.py validate",
+        "python3 automation/voxel-editor/taskctl.py next"
+      ]
+    },
+    {
+      "id": "P0-03",
+      "stage": "P0",
+      "title": "评估 Three.js 现成编辑交互",
+      "dependsOn": [
+        "P0-02"
+      ],
+      "allowedPaths": [
+        "automation/voxel-editor/"
+      ],
+      "acceptance": [
+        "记录可复用移动/缩放/旋转、网格吸附、框选/拉伸、撤销交互的方案与许可",
+        "与原版 Viewer 对照，注明哪些功能仍需自写",
+        "明确不复制不明许可源码或修改原版目录"
+      ],
+      "commands": [
+        "python3 automation/voxel-editor/taskctl.py validate"
+      ],
+      "outputs": [
+        "automation/voxel-editor/threejs-editor-research.md"
+      ]
+    },
+    {
+      "id": "P1-01",
+      "stage": "P1",
+      "title": "从离线扫描生成平整语义房间",
+      "dependsOn": [
+        "P0-03"
+      ],
+      "allowedPaths": [
+        "experiment/实验6_平整语义房间与编辑器/",
+        "experiment/README.md",
+        "experiment/index.html"
+      ],
+      "acceptance": [
+        "Office.zip 无 PLY 也能生成平整地面、墙段、开口和语义粗框",
+        "Office 2.zip 可叠加扫描证据但默认编辑基底不出现 PLY 凹凸",
+        "墙段、洞口、桌面锚面、物体尺寸均保留米制与来源标记；桌面高度标为推断",
+        "两个扫描会话独立展示，未自动拼接"
+      ],
+      "commands": [
+        "在浏览器分别加载 Office 与 Office 2",
+        "核对场景数据和几何测试"
+      ],
+      "sharedFileRules": [
+        "experiment/index.html 仅增加/修正独立实验导航；experiment/README.md 仅补运行和能力边界说明，不改实验 1–4 实现"
+      ]
+    },
+    {
+      "id": "P1-02",
+      "stage": "P1",
+      "title": "建立原版风格独立查看与编辑页面",
+      "dependsOn": [
+        "P1-01"
+      ],
+      "allowedPaths": [
+        "experiment/实验6_平整语义房间与编辑器/",
+        "experiment/README.md",
+        "experiment/index.html"
+      ],
+      "acceptance": [
+        "独立实验页面采用原版 Viewer 的主画布、侧栏、视角与图层切换逻辑",
+        "查看、选择、创建模式分开，镜头拖动不会误创建物体",
+        "语义/来源/锁定/不确定状态清楚可见，原版 reference 保持只读",
+        "三维视图能与 Layout 平面视图切换，选中状态与同一米制场景一致",
+        "保留原版界面模式与侧栏逻辑的出处记录，复制代码保留 MIT 许可；新增编辑逻辑位于本实验"
+      ],
+      "commands": [
+        "浏览器测试斜视、顶视、侧视、视角复位和图层切换"
+      ],
+      "sharedFileRules": [
+        "experiment/index.html 仅增加/修正独立实验导航；experiment/README.md 仅补运行和能力边界说明，不改实验 1–4 实现"
+      ],
+      "baselineSources": [
+        "reference/3d-model-anything/apps/room-viewer/index.html",
+        "reference/3d-model-anything/apps/room-viewer/src/main.ts",
+        "reference/3d-model-anything/apps/room-viewer/src/style.css"
+      ]
+    },
+    {
+      "id": "P1-03",
+      "stage": "P1",
+      "title": "完成框选拉伸、摆放与命名",
+      "dependsOn": [
+        "P1-02"
+      ],
+      "allowedPaths": [
+        "experiment/实验6_平整语义房间与编辑器/",
+        "experiment/index.html",
+        "experiment/README.md"
+      ],
+      "acceptance": [
+        "可选地面、墙面、桌面锚面，拖矩形后沿法线拉伸任意正整数 a×b×c 格",
+        "可精确输入尺寸、命名、选择、移动、旋转、复制和删除；Esc 取消草稿",
+        "新物体以连续米制保存并记录承载面、语义和来源",
+        "操作可撤销重做，清空家具保留墙地面、洞口与原始证据"
+      ],
+      "commands": [
+        "浏览器完成桌面 3×2×2 方块创建与命名",
+        "验证撤销/重做及清空边界"
+      ],
+      "sharedFileRules": [
+        "experiment/index.html 仅增加/修正独立实验导航；experiment/README.md 仅补运行和能力边界说明，不改实验 1–4 实现"
+      ]
+    },
+    {
+      "id": "P1-04",
+      "stage": "P1",
+      "title": "保留 Layout 平面设计与占地编辑路线",
+      "dependsOn": [
+        "P1-02"
+      ],
+      "allowedPaths": [
+        "experiment/实验6_平整语义房间与编辑器/",
+        "experiment/index.html",
+        "experiment/README.md"
+      ],
+      "acceptance": [
+        "参照原版 Layout 平面视图表达墙段、门窗、物体占地和语义",
+        "三维和平面选择同一对象；修改摆放后坐标保持一致",
+        "平面模式适合直观查看占地，不把未扫描区域当作确定净空",
+        "保留原版 Layout 的米制 SVG、总体尺寸/面积、门窗图例、带旋转占地以及平移/滚轮缩放/双击或按钮适配操作",
+        "Layout 是与三维并列的平面设计入口，而非用透视相机俯视代替；导出的 SVG 标明粗测量和非施工图",
+        "明确原版 Layout 提供查看，物体选择/创建/编辑是本实验新增能力"
+      ],
+      "commands": [
+        "浏览器在三维/Layout 间切换并核对物体选择与占地"
+      ],
+      "sharedFileRules": [
+        "experiment/index.html 仅增加/修正独立实验导航；experiment/README.md 仅补运行和能力边界说明，不改实验 1–4 实现"
+      ],
+      "baselineSources": [
+        "reference/3d-model-anything/apps/room-viewer/src/layout.ts",
+        "reference/3d-model-anything/packages/room-runtime/types.ts"
+      ]
+    },
+    {
+      "id": "P1-05",
+      "stage": "P1",
+      "title": "保存、导入导出与交互验收",
+      "dependsOn": [
+        "P1-03",
+        "P1-04"
+      ],
+      "allowedPaths": [
+        "experiment/实验6_平整语义房间与编辑器/",
+        "experiment/README.md",
+        "experiment/index.html"
+      ],
+      "acceptance": [
+        "派生场景状态可导出/导入且不覆盖原始扫描证据",
+        "保存重开后物体米制位置、尺寸、语义与锚面相同",
+        "键鼠核心流程经过自动化和人工走查；无阻断错误",
+        "本阶段检查点提交仅含允许路径"
+      ],
+      "commands": [
+        "浏览器回归 Office 与 Office 2",
+        "python3 automation/voxel-editor/taskctl.py validate"
+      ],
+      "sharedFileRules": [
+        "experiment/index.html 仅增加/修正独立实验导航；experiment/README.md 仅补运行和能力边界说明，不改实验 1–4 实现"
+      ]
+    },
+    {
+      "id": "P2-01",
+      "stage": "P2",
+      "title": "实现全局格密度确定性切换",
+      "dependsOn": [
+        "P1-05"
+      ],
+      "allowedPaths": [
+        "experiment/实验7_确定性层级体素/",
+        "experiment/index.html",
+        "experiment/README.md"
+      ],
+      "acceptance": [
+        "20→10→5 cm 切换后平面仍平，门窗仍为空洞",
+        "米制尺寸、位置、旋转、标签和锚面 ID 不变",
+        "RoomPlan 非整格边界只裁短显示格，不暗改测量值",
+        "变化不从 PLY 重新生成表面",
+        "存在真实层级/占用格数据与确定性几何重采样，不能仅改变 gridStep、吸附距离或绘制更多格线就标为完成",
+        "测试父格到子格的覆盖守恒、边界裁剪和洞口保持，并记录格数量/分辨率与米制几何的区别"
+      ],
+      "commands": [
+        "几何不变量测试",
+        "浏览器密度切换对照"
+      ],
+      "sharedFileRules": [
+        "共享导航只链接当前新增独立实验，不重构旧实验"
+      ]
+    },
+    {
+      "id": "P2-02",
+      "stage": "P2",
+      "title": "实现局部父子格与候选细节",
+      "dependsOn": [
+        "P2-01"
+      ],
+      "allowedPaths": [
+        "experiment/实验7_确定性层级体素/"
+      ],
+      "acceptance": [
+        "选区可到 2.5 cm 而未选区保持原密度",
+        "局部候选记录父层、范围、来源、版本和接受/撤销历史",
+        "限定体积内用 Box 等简单几何拼出柜门、冰箱门或花洒示例",
+        "局部细化不能改变锁定平面与选区外对象"
+      ],
+      "commands": [
+        "局部边界与回滚测试",
+        "浏览器对照细化前后"
+      ]
+    },
+    {
+      "id": "P3-01",
+      "stage": "P3",
+      "title": "制定 AI 场景命令契约与校验器",
+      "dependsOn": [
+        "P2-02"
+      ],
+      "allowedPaths": [
+        "experiment/实验8_AI体素命令与局部细化/",
+        "experiment/index.html",
+        "experiment/README.md"
+      ],
+      "acceptance": [
+        "命令含 sceneRevision、目标/选区 ID、锚面、米制范围与来源",
+        "仅接受白名单结构化操作，拒绝脚本、越界、锁定项修改和旧版本命令",
+        "无冲突新增可撤销；覆盖、清空和批量操作先预览再接受",
+        "失败和无效输出不改变场景"
+      ],
+      "commands": [
+        "命令校验单元测试"
+      ],
+      "sharedFileRules": [
+        "共享导航只链接当前新增独立实验，不重构旧实验"
+      ]
+    },
+    {
+      "id": "P3-02",
+      "stage": "P3",
+      "title": "完整继承原版 Skill 基线并建立本机 AI 适配器",
+      "dependsOn": [
+        "P3-01"
+      ],
+      "allowedPaths": [
+        "experiment/实验8_AI体素命令与局部细化/"
+      ],
+      "acceptance": [
+        "衍生 Skill 参考原版扫描证据和坐标流程但位于本项目，不改 reference",
+        "本机服务只提交最小必要结构 JSON，模型输出经过同一命令校验器",
+        "无服务时编辑器完整可用；AI 连接状态可见",
+        "记录生成来源与请求，不把私有扫描资产写入 Git",
+        "充分采用原版 Skill 的坐标、测量优先、证据核对、同视角比较与项目布局原则",
+        "先按 BASELINE_REUSE.md 清单完整复制原版 Skill（SKILL、4 份 references、BRIEF 示例、16 个 scripts），保留不可变 upstream 快照，再增加体素命令/选区/候选/撤销规则",
+        "baseline-manifest.json 逐文件记录来源路径、SHA-256、本仓库快照提交与复制时间；UPSTREAM.md 说明本地适配及仍未接通的工具",
+        "保留原版 MIT 作者与许可；不复制 data/、照片、纹理、node_modules、dist 或 iPhone 端，不把参考目录已有用户改动混入衍生实现",
+        "在实验 8 工作目录验证 Skill 的实际发现/调用和脚本 S 路径；原版 demos/index.ts 等交付位置只映射到本实验，绝不照指令写入 reference",
+        "真实调用的 AI 适配器须有可核对请求/响应与失败测试；仅写 Skill 文件不算网页 AI 已接通"
+      ],
+      "commands": [
+        "AI 适配器契约测试",
+        "核对 reference 无修改"
+      ],
+      "outputs": [
+        "experiment/实验8_AI体素命令与局部细化/.agents/skills/voxel-room-edit/SKILL.md",
+        "experiment/实验8_AI体素命令与局部细化/.agents/skills/voxel-room-edit/upstream/scan-to-threejs/",
+        "experiment/实验8_AI体素命令与局部细化/.agents/skills/voxel-room-edit/UPSTREAM.md",
+        "experiment/实验8_AI体素命令与局部细化/.agents/skills/voxel-room-edit/baseline-manifest.json",
+        "experiment/实验8_AI体素命令与局部细化/.agents/skills/voxel-room-edit/LICENSE.upstream"
+      ],
+      "baselineSources": [
+        "reference/3d-model-anything/.agents/skills/scan-to-threejs/",
+        "reference/3d-model-anything/LICENSE"
+      ]
+    },
+    {
+      "id": "P3-03",
+      "stage": "P3",
+      "title": "AI 在指定锚面放置并局部细化",
+      "dependsOn": [
+        "P3-02"
+      ],
+      "allowedPaths": [
+        "experiment/实验8_AI体素命令与局部细化/"
+      ],
+      "acceptance": [
+        "AI 可在墙/地面/桌面上按语义放置受约束方块组",
+        "可仅细化一个物体或选区，预览并接受/撤销",
+        "不挪动已锁定结构、用户确认尺寸与未选区",
+        "同一输入的提案有版本与质量记录，失败保留粗版"
+      ],
+      "commands": [
+        "桌面台灯底座和墙面架子案例",
+        "选区外不变测试"
+      ]
+    },
+    {
+      "id": "P4-01",
+      "stage": "P4",
+      "title": "逐件批量细化和质量报告",
+      "dependsOn": [
+        "P3-03"
+      ],
+      "allowedPaths": [
+        "experiment/实验9_批量细化与可用性验证/",
+        "experiment/index.html",
+        "experiment/README.md"
+      ],
+      "acceptance": [
+        "已标注对象逐件/分块生成候选，不一次替换整屋",
+        "每件成功/失败/待确认状态可见，失败保留粗版",
+        "成功候选可一组接受和撤销；共享边界保持一致",
+        "地面、墙面、桌面仍是锁定平整基底"
+      ],
+      "commands": [
+        "批量失败注入和撤销测试"
+      ],
+      "sharedFileRules": [
+        "共享导航只链接当前新增独立实验，不重构旧实验"
+      ]
+    },
+    {
+      "id": "P4-02",
+      "stage": "P4",
+      "title": "验证游戏式与适老化核心流程",
+      "dependsOn": [
+        "P4-01"
+      ],
+      "allowedPaths": [
+        "experiment/实验9_批量细化与可用性验证/"
+      ],
+      "acceptance": [
+        "实测从打开扫描到创建、命名、移动、细化和清空的完整流程",
+        "明确可操作引导、可读标签和撤销入口，记录用户理解障碍",
+        "Office 与 Office 2 均回归且私有资产不进入 Git",
+        "对未测得的净空、商品适配和施工尺寸明确提示不确定性"
+      ],
+      "commands": [
+        "浏览器端到端回归",
+        "隐私与提交范围核查"
+      ]
+    }
+  ],
+  "deferred": [
+    {
+      "name": "iPhone 采集/实时同步",
+      "autoStart": false,
+      "reason": "本轮沿用离线传输，待桌面编辑与场景契约稳定后另立独立实验"
+    },
+    {
+      "name": "iPhone AR 回看与重定位",
+      "autoStart": false,
+      "reason": "须先验证场景坐标与双端一致性"
+    },
+    {
+      "name": "商品 SKU、净空与水电施工图",
+      "autoStart": false,
+      "reason": "需要可验证产品规格、测量精度与工程规范，不可把原始设想的绝对承诺当验收结果"
+    }
+  ]
+}

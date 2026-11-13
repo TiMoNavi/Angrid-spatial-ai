@@ -10,7 +10,7 @@
 
 ### 2026-11-14 新增 openPlan3D 编辑器框架基线
 
-按用户后续指示，实验 7 以 openPlan3D 的隔离副本作编辑器外壳；原版 Viewer 的证据对照和 scan-to-threejs 工作流继续保留。具体边界见 [源码评估](openplan3d-integration-assessment.md) 和 [综合方案](VOXEL_EDITOR_V2.md)。不是把现有全部代码改成另一技术栈，也不是直接在 reference 改造。
+按用户后续指示，实验 7 仅以 openPlan3D 网页的隔离副本作编辑器外壳，不考虑其 iPhone 端；原版 Viewer 的证据对照和 scan-to-threejs 工作流继续保留。具体边界见 [网页精简与接线](WEB_VOXEL_INTEGRATION_PLAN.md)、[源码评估](openplan3d-integration-assessment.md) 和 [体素不变量](VOXEL_EDITOR_V2.md)。保留技术栈，在独立实验中隔离事务、加载与渲染接缝。
 
 - 来源 `laanlabs/openPlan3D`，固定 revision `b0727b54da5f0f642722dcc88cc52d7236fadc9e`；[manifest](openplan3d-upstream-manifest.json) 记录 1156 个上游 regular files 的 SHA-256。`fetch_openplan3d.py` 可验证或只恢复缺失文件，不覆盖改动，不将外层 Angrid HEAD 误作上游版本。
 - 参考目录是源码归档快照，本机依赖/生成物不属于 upstream 验证。新实验复制必要源码、固定依赖版本、保留 MIT；额外资产逐项核对许可，不整包复制 node_modules、用户工程和云凭据。
@@ -83,7 +83,7 @@
 
 1. 继续使用米、+Y 向上、地面零高；保留并一致应用 session-to-room 与 room-to-house 变换。独立会话不凭同名自动对齐。
 2. 先确定 RoomPlan 平整墙地面、洞口、语义粗框和桌面锚面，标注 measured / inferred / user / ai。粗包围盒不是完成的精细家具。
-3. 格密度变化从已确认的连续几何确定性重采样；AI 细化是在限定范围内增加几何，不从 PLY 噪声恢复细节。
+3. 格密度变化从当前有效占据及裁剪确定性拆格，继承人工孔洞与归属，不从粗代理重填；首版局部 ROI 为完整父格集合。AI 细化是在限定范围内增加几何，不从 PLY 噪声恢复细节。
 4. 请求/提案使用 sceneRevision、物体/选区、锚面、米制边界、锁定项和来源；不让模型输出自由执行脚本。
 5. 局部、批量、覆盖、清空都通过校验、候选、接受与撤销；未选区与锁定平面不可改变。
 6. 继续使用照片位姿/内参、原始顺序和同相机对比；不得裁去黑色/空扫描区域来伪造匹配。生成对比图不等于通过视觉验收。

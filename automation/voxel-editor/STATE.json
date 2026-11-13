@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-11-13T19:13:44Z",
+  "updatedAt": "2026-11-13T19:38:57Z",
   "branch": "codex/voxel-editor-v1",
   "note": "远端仓库为公开仓库；推送前核对提交和隐私。本状态以任务 ID 为唯一事实来源。",
   "tasks": {
@@ -173,6 +173,13 @@
       "updatedAt": null
     },
     "P2-04": {
+      "status": "pending",
+      "checkpoint": null,
+      "evidence": [],
+      "reason": null,
+      "updatedAt": null
+    },
+    "P2-06": {
       "status": "pending",
       "checkpoint": null,
       "evidence": [],
@@ -407,6 +414,27 @@
           "automation/voxel-editor/voxlution-transfer-assessment.md"
         ],
         "privacyReminder": "路径核验不等于内容隐私核验；推送前仍须检查 diff，尤其是 JSON 与日志。"
+      }
+    },
+    {
+      "at": "2026-11-13T19:38:57Z",
+      "task": "P2-06",
+      "action": "plan_update",
+      "detail": {
+        "decision": "仅网页与已有离线输入；排除openPlan3D iPhone端，不自动开展手机互通/往返/AR。",
+        "plan": "WEB_VOXEL_INTEGRATION_PLAN.md",
+        "sequence": [
+          "P2-00",
+          "P2-06",
+          "P2-05",
+          "P2-01",
+          "P2-03",
+          "P2-02",
+          "P2-04",
+          "P3",
+          "P4"
+        ],
+        "scope": "本次为源码审计、接线契约和任务规划；未改造编辑器，未接通真体素/AI，未测得性能收益，既有实现任务完成状态不变。"
       }
     }
   ]

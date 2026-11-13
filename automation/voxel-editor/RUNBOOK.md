@@ -7,7 +7,7 @@
 1. 确认仓库是 Angrid-spatial-ai，读取本目录 README、TASKS、STATE，执行 taskctl.py validate。
 2. 运行 git status --short --branch、git diff --stat、git diff --cached --stat，识别已有用户改动。当前仓库可能保留不属于本任务的改动，不能要求全仓 clean，更不能重置它们。
 3. 用 taskctl.py next 领取依赖已完成的任务。若已有 in_progress，先读它的状态与现场，再续做。
-4. 读取任务的 allowedPaths、验收条件和 BASELINE_REUSE.md。实验 7 起先读 VOXEL_EDITOR_V2.md、openPlan3D 源码评估、实时体素/物体边界调研及 VoxLution 评估；验证固定 upstream manifest 后从新框架复制到独立实验。原版 apps/room-viewer 与 src/layout.ts 继续用于证据对照/平面路线；Skill 不只读摘要，按任务阶段读取原版指令和相关 references。两份参考只读；保留旧实验供对照。
+4. 读取任务的 allowedPaths、验收条件和 BASELINE_REUSE.md。实验 7 起先读 WEB_VOXEL_INTEGRATION_PLAN.md、VOXEL_EDITOR_V2.md、openPlan3D 源码评估、实时体素/物体边界调研及 VoxLution 评估；验证固定 upstream manifest 后从新框架复制到独立实验。当前仅网页与已有离线输入，手机相关历史研究不构成新任务。原版 apps/room-viewer 与 src/layout.ts 继续用于证据对照/平面路线；Skill 不只读摘要，按任务阶段读取原版指令和相关 references。两份参考只读；保留旧实验供对照。
 5. 执行 taskctl.py start TASK-ID。只修改允许路径；需要扩大路径时先说明真实原因并更新任务定义，不静默跨阶段施工。
 
 ## 实现、验收和提交

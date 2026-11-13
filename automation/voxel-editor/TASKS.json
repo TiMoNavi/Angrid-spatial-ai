@@ -6,7 +6,7 @@
     "viewer": "reference/3d-model-anything/demos/",
     "skill": "reference/3d-model-anything/.agents/skills/scan-to-threejs/SKILL.md",
     "planningDoc": "experiment/实验5_游戏式体素编辑/目标与实现方案.md",
-    "capturePolicy": "iPhone 采集端与原始 ZIP 暂不改；沿用离线传输；扫描证据只读。",
+    "capturePolicy": "不考虑 openPlan3D iPhone 端；只读现有离线扫描与 ZIP，不新增手机采集、互通、AR 或同步；扫描证据只读。",
     "viewerLayout": "reference/3d-model-anything/apps/room-viewer/src/layout.ts",
     "viewerShell": "reference/3d-model-anything/apps/room-viewer/",
     "runtimeTypes": "reference/3d-model-anything/packages/room-runtime/types.ts",
@@ -15,7 +15,8 @@
     "editorShell": "reference/openPlan3D/",
     "editorRevision": "b0727b54da5f0f642722dcc88cc52d7236fadc9e",
     "voxelDecision": "automation/voxel-editor/VOXEL_EDITOR_V2.md",
-    "editorSourcePolicy": "参考快照只读；用 fetch_openplan3d.py 验证/恢复缺失文件；新实验隔离适配，保留两套上游 Skill 和许可"
+    "editorSourcePolicy": "参考快照只读；用 fetch_openplan3d.py 验证/恢复缺失文件；新实验隔离适配，保留两套上游 Skill 和许可",
+    "webIntegration": "automation/voxel-editor/WEB_VOXEL_INTEGRATION_PLAN.md"
   },
   "stages": [
     {
@@ -295,13 +296,13 @@
         "experiment/README.md"
       ],
       "acceptance": [
-        "先读 VOXEL_EDITOR_V2.md 和三份调研；核验上游 pinned manifest，从 reference 复制必要代码到新实验，不在 reference 修改或运行构建",
+        "先读 WEB_VOXEL_INTEGRATION_PLAN.md、VOXEL_EDITOR_V2.md 和三份调研；核验上游 pinned manifest，从 reference 复制必要代码到新实验，不在 reference 修改或运行构建",
         "记录实际复制文件 SHA-256、出处和 MIT；不复制依赖目录、云端凭据或扫描资产；同一 app 不混用两版 Three/addon",
         "浏览器跑通本地 2D/3D、RoomPlan 结构、开口、语义代理、选择/摆放、保存和撤销；无 AI/云服务也可用",
         "体素域保持米制 XZ/+Y，建立唯一厘米/plan XY/弧度旋转/楼层/中心底高适配器；负坐标和往返转换有测试",
         "沿用原版 Viewer/证据对照与独立平面设计路线；保持 iPhone 离线 ZIP，不把家具包围盒称为已测得实心外形",
-        "先读 IOS_CAPTURE_ASSESSMENT.md；离线入口区分原始采集 ZIP、prepared JSON 与 Project Package，不通过旧 room.json 静默丢弃 plan.json 编辑；未支持格式须明确拒绝",
-        "唯一适配器保留源会话/identifier/parentIdentifier/floor，测试 raw/prepared 与显式导入选项优先级，避免重复校正和未经变换把 raw Y 当离地高度；本任务不改 iOS、不宣称体素已兼容手机往返"
+        "离线入口区分原始采集 ZIP、prepared JSON 与 Project Package；显式路由和格式校验，不通过旧 room.json 静默丢弃 plan.json 编辑；未支持格式须明确拒绝，不要求完整上游包或手机往返兼容",
+        "唯一适配器保留源会话/identifier/parentIdentifier/floor，测试 raw/prepared 与显式导入选项优先级，避免重复校正和未经变换把 raw Y 当离地高度；本任务只做网页和现有离线输入"
       ],
       "commands": [
         "坐标/单位/旋转/底高往返测试",
@@ -312,11 +313,38 @@
       ]
     },
     {
-      "id": "P2-05",
+      "id": "P2-06",
       "stage": "P2",
-      "title": "保留对象实例并实现可修正的物体边界归属",
+      "title": "精简离线工作台并建立统一事务与保存接缝",
       "dependsOn": [
         "P2-00"
+      ],
+      "allowedPaths": [
+        "experiment/实验7_确定性层级体素/"
+      ],
+      "acceptance": [
+        "按 WEB_VOXEL_INTEGRATION_PLAN.md 保留本地打开/保存/恢复、2D/3D、对象树、属性、测量、锁定和撤销；查看/物体/格子主模式与视图切换分离，高级能力渐进展示",
+        "先将 initAutoSave/initVersionHistory 从 TopBar 提升到 EditorSession 根；反复切换工具栏/视图、挂载卸载不重复启动、不停掉保存，不删除冲突/配额/未保存提示",
+        "建立 EditorDocument/CommandCoordinator 与唯一有序 Undo/Redo，plan patch、voxel delta、links、选区和 revision 同笔提交；旧属性、2D/3D、导入、键盘、Bridge apply/replace 不绕过链接对象约束",
+        "定义未体素 plan 与已链接 voxel 对象各自字段权威；已链接代理只投影，不用双订阅互相修正；保留一次手势一次 Undo 和无变化不建历史",
+        "本实验使用独立 IndexedDB 名/版本；manifest 与 immutable chunk 引用同 revision 原子发布；缺块/哈希/配额/中途失败不破坏上次可用工程，草稿可完整导出，历史仍引用的 blobs 不回收",
+        "区分上游 plan JSON 与完整体素工程格式；密集 cells 不进入 furniture、floor、全量场景签名或全项目快照；以小 chunk fixture 验证跨域命令/保存故障恢复，不提前宣称真体素完成",
+        "离线 profile 关闭 analytics、云导入与分享；保留可选本地 Node Bridge 和 loopback/Origin 防护；记录生产与开发浏览器/server capability 开关，不把纯静态页称为已有本地服务",
+        "PDF/CAD/打印、重 GLB/纹理、AI 效果图/漫游/跨产品功能按需加载；用构建产物确认脱离首屏静态依赖，保留已有 3D 懒加载/按需渲染/相机保持/dispose",
+        "记录精简前后构建资源、实际首屏网络、主线程与本机导入基线；功能隐藏与减包收益分开报告，不承诺未经测量的百分比或帧率"
+      ],
+      "commands": [
+        "会话生命周期/跨域事务/Undo-Redo/保存失败与重开测试",
+        "浏览器无云离线核心编辑与网络检查",
+        "生产构建依赖与启动性能基线记录"
+      ]
+    },
+    {
+      "id": "P2-05",
+      "stage": "P2",
+      "title": "保留对象实例并建立候选边界与代理级纠错",
+      "dependsOn": [
+        "P2-06"
       ],
       "allowedPaths": [
         "experiment/实验7_确定性层级体素/"
@@ -326,12 +354,12 @@
         "区分实例身份、类别、代理 OBB、实际几何 mask 和空间占据；家具包围盒不冒充实心物体",
         "对象保留独立归属：贴墙柜子可单独选择和移动，接触椅子不被连通域合并，断开的桌腿仍属同一桌子",
         "以结构平面与对象种子约束几何候选，保留 unknown/conflict；区分占据未知和归属未知；同一粗格多个候选不得静默覆盖或任选一件，粗格混合不等于几何碰撞",
-        "提供人工框选/剖切修正、拆分、合并、重新归属与冻结；撤销和重载后身份与归属不变",
+        "先提供对象树、隔离/半透明、剖切和代理级拆分/合并/改归属/冻结；撤销和重载后身份与来源不变；真实占据上的格/区域归属修正由 P2-03 完成，不以代理纠错宣称精确 mask 已得到",
         "PLY 的类别字段不得当实例；多视角 AI 先核对 RGB-D、相机内参、位姿、帧 ID、坐标变换，缺少输入时降级不伪造精度",
         "用本机人工标注小样本评估边界质量；手工、几何候选、AI 补全分别记录来源"
       ],
       "commands": [
-        "稳定实例 ID/接触与断片/多 owner 冲突/人工拆合往返测试",
+        "稳定实例 ID/接触与断片/多 owner 候选/代理级拆合往返测试",
         "真实浏览器选中贴墙物体→单独移动→拆合/撤销→保存重开"
       ]
     },
@@ -350,14 +378,18 @@
       "acceptance": [
         "20→10→5 cm 切换后平面仍平，门窗仍为空洞",
         "米制尺寸、位置、旋转、标签和锚面 ID 不变",
-        "RoomPlan 非整格边界只裁短显示格，不暗改测量值",
+        "RoomPlan 非整格边界使用有效占据裁剪，不暗改测量值；可见面、拾取、查询、体积与碰撞遵循同一裁剪结果",
         "变化不从 PLY 重新生成表面",
-        "存在真实层级/占用格数据与确定性几何重采样，不能仅改变 gridStep、吸附距离或绘制更多格线就标为完成",
+        "存在真实层级/占用格数据与确定性拆格／重表达，不能仅改变 gridStep、吸附距离或绘制更多格线就标为完成",
         "测试父格到子格的覆盖守恒、边界裁剪和洞口保持，并记录格数量/分辨率与米制几何的区别",
         "保存真正整数单元索引/owner/语义/占据与未知状态，线框关闭时查询与编辑仍存在；平整墙地面有对应占据与裁剪规则",
         "20cm的3×2×2完整占据块在10/5cm时分别为96/768格，总体积和米制边界不变",
         "已有单格删除/孔洞在变密和降密度后不能被原粗代理填回；不可无损合并的细层保留或拒绝有损操作",
-        "非整格平面/房间凹轮廓/门窗边界裁剪同时作用于渲染、占据查询与体积，不只裁视觉表面"
+        "非整格平面/房间凹轮廓/门窗边界裁剪同时作用于渲染、占据查询与体积，不只裁视觉表面",
+        "每件对象保存局部有效占据/层级/裁剪，世界格仅索引候选 owner；同一20cm粗格A占0–8cm、B占12–20cm时，x=4/10/16cm查询分别为A/空/B，宽阶段相交不能判真碰撞",
+        "单位立方体裁到x+z≤1后体积0.5；被裁区域查询为空，射线不得在被裁掉部分提前命中；摆放合法性约束与持久结构裁剪分别保存",
+        "统一世界米制轴向与20/10/5/2.5cm步长族，各对象保存稳定局部gridOrigin/baseStep/placementStep/pivot；允许承载面固定phase，世界lattice仅宽阶段索引，一个局部格跨多世界格不重复计数或保存",
+        "supportPlane只作零厚度锚面，结构solidDomain保存有限厚度及来源；1×1×0.1m墙板减去0.5×0.5m贯通洞口后为0.075m³，穿洞射线不命中，拆格/重载后不变"
       ],
       "commands": [
         "几何不变量测试",
@@ -382,8 +414,12 @@
         "3×2×2 实际占据12格；单格删除变11、撤销恢复12；关格线仍能选择/增删格",
         "单格、三维区域、整物体三种选择有明确反馈，支持邻面加格、区域填充/挖空、命名/标签与锁定",
         "拾取查询来自 occupancy，测试负坐标/边界/合并面；2D占据切片与3D同状态，剖切后能编辑内部",
-        "移动/变换写回真实占据和owner，父承载/子锁定规则不被绕过；无效操作整笔拒绝",
-        "从真实鼠标/键盘走通框选拉伸→命名摆到桌面→挖空→撤销→保存重开，不能只注入内部状态"
+        "整件移动/90°旋转改变姿态并更新旧/新世界候选索引，不从Box重填；按稳定placementStep/局部格点pivot操作，变细不自动改变步长；reanchor只改姿态与支撑，保留局部形状；首版雕刻后缩放直接拒绝；父子锁定不被绕过，无效操作整笔拒绝",
+        "从真实鼠标/键盘走通框选拉伸→命名摆到桌面→挖空→撤销→保存重开，不能只注入内部状态",
+        "提供真实占据上的框选/剖切、拆成新对象、合并、格/区域改归属与冻结；unknown/conflict显式保留，共用有序历史，不能只在代理字段上操作",
+        "2×2×2挖掉一格后，移动/90°旋转/保存重开仍为七格且孔随物体走；移动A后A局部形状hash不变、旧索引清理、B形状/身份不变",
+        "承载面frame有origin/u/v/normal且首版限房间轴向；锚定对象世界姿态从anchorFrame×localPlacementPose唯一推导，phase不双写；固定attachmentPoint/pivot，不因挖掉底格而重新找最低格贴面",
+        "0.73m桌面上以h=0.2m建3×2×2格，仍12格/0.096m³且底顶为0.73/1.13m；挖一格后移到地面再回桌面仍11格、同objectId/hash/孔洞，桌面和局部origin/pivot/步长不漂移；不同phase共世界粗格但有缝时不误报碰撞"
       ],
       "commands": [
         "占据数/哈希/锁定/支撑/边界测试",
@@ -401,14 +437,15 @@
         "experiment/实验7_确定性层级体素/"
       ],
       "acceptance": [
-        "选区可到 2.5 cm 而未选区保持原密度",
+        "选区可到2.5cm，首版ROI限完整父格集合；任意框选先吸附并显示实际父格范围，实际未选父格逐值不变",
         "局部候选记录父层、范围、来源、版本和接受/撤销历史",
         "限定体积内用 Box 等简单几何拼出柜门、冰箱门或花洒示例",
         "局部细化不能改变锁定平面与选区外对象",
         "12格中只拆1格为8个子格后共19个叶占据单元；占据体积不变，其余11格逐值不变；记录parent/child与范围",
         "细化覆盖父格不双计，粗细邻界无穿透/重复面/裂缝；已有局部删除与语义跨全局重表达保留",
         "确定性拆格与部件语义细化分成不同操作；先做非AI柜子部件候选并记录为设计推断，不声称扫描测得",
-        "不得将体素膨胀/平滑等操作全屋应用后吞掉门窗或破坏锁定平面"
+        "不得将体素膨胀/平滑等操作全屋应用后吞掉门窗或破坏锁定平面",
+        "12父格只拆1格为19叶格，删1子格后为18；再全局h/2为95占据格且孔保留；缺角父格合粗须拒绝或保留细层，不作有损重填"
       ],
       "commands": [
         "局部边界与回滚测试",
@@ -432,7 +469,9 @@
         "体素使用增量patch与一次手势/事务撤销，不因每刷一格触发整项目JSON clone/整屋重建",
         "在实际主力设备/浏览器记录10k/100k/1M占据格的可见格数、帧时间、编辑/保存/撤销延迟、draw calls和内存；超预算记录边界并限流/分批",
         "拖动p95≤33ms和普通局部反馈≤100ms为候选目标，必须以实测给出支持的工作负载，不把计划目标写为已达到",
-        "导出重载保留完整occupancy/owner/局部细化/锁定与哈希；中途失败不部分接受候选"
+        "导出重载保留完整occupancy/owner/局部细化/锁定与哈希；中途失败不部分接受候选",
+        "对照P2-06起记录的启动/导入基线，区分UI精简、加载分离与chunk增量收益；不得把上游已有优化记成新增",
+        "测试反复打开/编辑/关闭与保存配额耗尽；共享几何/材质资源所有权明确，失败保留可重开的上一revision"
       ],
       "commands": [
         "分档性能/增量历史与Worker竞态回归",
@@ -457,7 +496,8 @@
         "无冲突新增可撤销；覆盖、清空和批量操作先预览再接受",
         "失败和无效输出不改变场景",
         "优先扩展openPlan本地Bridge/MCP为region/chunk受限工具，不把每格通过家具add/update接口提交",
-        "命令以部件树/区域patch编译，包含邻界、预期revision与预算；在内存完整验证后形成单笔事务"
+        "命令以部件树/区域patch编译，包含邻界、预期revision与预算；在内存完整验证后形成单笔事务",
+        "AI region/chunk命令与旧Bridge apply/replace共用CommandCoordinator；expectedRevision、父格ROI、对象权威、锁定与预算完整校验，候选失效不可绕过人工操作规则"
       ],
       "commands": [
         "命令校验单元测试"
@@ -488,7 +528,8 @@
         "在实验 8 工作目录验证 Skill 的实际发现/调用和脚本 S 路径；原版 demos/index.ts 等交付位置只映射到本实验，绝不照指令写入 reference",
         "真实调用的 AI 适配器须有可核对请求/响应与失败测试；仅写 Skill 文件不算网页 AI 已接通",
         "另完整复制openPlan3D docs/skills/openplan3d-plan-authoring及其引用为第二份可追溯upstream快照，保留MIT、逐文件hash与格式验证；不混成自由脚本输出",
-        "验证本地Bridge客户端/server启用开关、Codex实际连接、schema与revision；不要把AI渲染图或线上只读分享当作体素写入通路"
+        "验证本地Bridge客户端/server启用开关、Codex实际连接、schema与revision；不要把AI渲染图或线上只读分享当作体素写入通路",
+        "本机Node/Codex为第一条接入路径；统一浏览器与server capability，保留原本地请求防护；关闭AI或服务不可用时核心编辑/保存不受影响"
       ],
       "commands": [
         "AI 适配器契约测试",
@@ -581,17 +622,17 @@
     {
       "name": "iPhone 采集/实时同步",
       "autoStart": false,
-      "reason": "本轮保持既有 iPhone 与离线传输；参考 openPlan3D 手机入口及公开项目包协议，原生源码未公开，待体素场景契约稳定后另立实验"
+      "reason": "用户于2026-11-14明确排除openPlan3D iPhone端；当前只做网页与已有离线扫描。采集改造、手机互通、往返、AR与同步均不在P4后自动启动，只有用户重新提出才考虑。"
     },
     {
       "name": "iPhone 项目包往返与一键交接",
       "autoStart": false,
-      "reason": "先验证公开协议与实际发布 App；网页体素→手机仅改一件→网页返导须保留 occupancy/chunk/实例/语义/附件，并定义改尺寸、删除、换楼层规则；不以未知字段保留或上游 fixture 代替我们自己的验收"
+      "reason": "用户于2026-11-14明确排除openPlan3D iPhone端；当前只做网页与已有离线扫描。采集改造、手机互通、往返、AR与同步均不在P4后自动启动，只有用户重新提出才考虑。"
     },
     {
       "name": "iPhone AR 回看与重定位",
       "autoStart": false,
-      "reason": "须先验证场景坐标与双端一致性"
+      "reason": "用户于2026-11-14明确排除openPlan3D iPhone端；当前只做网页与已有离线扫描。采集改造、手机互通、往返、AR与同步均不在P4后自动启动，只有用户重新提出才考虑。"
     },
     {
       "name": "商品 SKU、净空与水电施工图",

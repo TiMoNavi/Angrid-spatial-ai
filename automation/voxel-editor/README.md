@@ -11,6 +11,7 @@
 3. [任务定义](TASKS.json) 是目标与依赖的唯一来源；[任务状态](STATE.json) 是完成情况的唯一来源。
 4. [原版继承清单](BASELINE_REUSE.md) 列明 Layout 功能、完整 Skill 复制目录、出处、许可和能力完成口径。
 5. [实验 5 目标](../../experiment/实验5_游戏式体素编辑/目标与实现方案.md) 是交互与几何约束的详细依据。
+6. [本轮接续记录](HANDOFF.md) 汇总已验收功能、检查点、现场与下一项任务；完成状态仍以 STATE 为准。
 
 原版 [3d-model-anything](../../reference/3d-model-anything/) 只读。新页面以它的 Viewer、Layout 平面视图与 scan-to-threejs Skill 的测量/坐标/对照流程为基线，在新实验内扩展。不要回去改实验 1–4，也不要为复用而改原版。
 

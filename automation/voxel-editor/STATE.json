@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-11-14",
+  "updatedAt": "2026-11-13T18:39:50Z",
   "branch": "codex/voxel-editor-v1",
   "note": "远端仓库为公开仓库；推送前核对提交和隐私。本状态以任务 ID 为唯一事实来源。",
   "tasks": {
@@ -14,53 +14,80 @@
       "updatedAt": null
     },
     "P0-02": {
-      "status": "in_progress",
-      "checkpoint": null,
-      "evidence": [],
+      "status": "done",
+      "checkpoint": "4e572eea01e2bb4dac8cf8e6e75bbf0174a2f3d9",
+      "evidence": [
+        "任务定义/DAG/限定路径检查通过；11 项 unittest 通过；已建立安全回档、原版继承清单与独立实验路线"
+      ],
       "reason": null,
-      "updatedAt": null
+      "updatedAt": "2026-11-13T18:33:08Z",
+      "completedAt": "2026-11-13T18:33:08Z"
     },
     "P0-03": {
-      "status": "pending",
-      "checkpoint": null,
-      "evidence": [],
+      "status": "done",
+      "checkpoint": "4e572eea01e2bb4dac8cf8e6e75bbf0174a2f3d9",
+      "evidence": [
+        "独立子代理核验 Three.js 官方控件及现成编辑器，记录来源、许可证、可复用交互及 scaleSnap 局限"
+      ],
       "reason": null,
-      "updatedAt": null
+      "updatedAt": "2026-11-13T18:33:08Z",
+      "startedAt": "2026-11-13T18:33:08Z",
+      "completedAt": "2026-11-13T18:33:08Z"
     },
     "P1-01": {
-      "status": "pending",
-      "checkpoint": null,
-      "evidence": [],
+      "status": "done",
+      "checkpoint": "630248ddf108e59a459f1d67a9a3dd3e84bab013",
+      "evidence": [
+        "两包 converted.json 可无 PLY 初始化平整轮廓/墙/开口/语义粗框；20 项 Node 测试通过，私有扫描真实浏览器加载通过"
+      ],
       "reason": null,
-      "updatedAt": null
+      "updatedAt": "2026-11-13T18:39:48Z",
+      "startedAt": "2026-11-13T18:33:08Z",
+      "completedAt": "2026-11-13T18:39:48Z"
     },
     "P1-02": {
-      "status": "pending",
-      "checkpoint": null,
-      "evidence": [],
+      "status": "done",
+      "checkpoint": "630248ddf108e59a459f1d67a9a3dd3e84bab013",
+      "evidence": [
+        "原版 Viewer 风格独立页面、3D/Layout/视角与来源切换通过；原版源码未由本任务修改；来源与 MIT 已记录"
+      ],
       "reason": null,
-      "updatedAt": null
+      "updatedAt": "2026-11-13T18:39:49Z",
+      "startedAt": "2026-11-13T18:39:49Z",
+      "completedAt": "2026-11-13T18:39:49Z"
     },
     "P1-03": {
-      "status": "pending",
-      "checkpoint": null,
-      "evidence": [],
+      "status": "done",
+      "checkpoint": "630248ddf108e59a459f1d67a9a3dd3e84bab013",
+      "evidence": [
+        "浏览器真实指针完成地面、桌面 3×2×2 和墙面创建；门窗开口拒绝；真实手柄移动/缩放/旋转、命名、撤销/锁定/清空通过"
+      ],
       "reason": null,
-      "updatedAt": null
+      "updatedAt": "2026-11-13T18:39:49Z",
+      "startedAt": "2026-11-13T18:39:49Z",
+      "completedAt": "2026-11-13T18:39:49Z"
     },
     "P1-04": {
-      "status": "pending",
-      "checkpoint": null,
-      "evidence": [],
+      "status": "done",
+      "checkpoint": "630248ddf108e59a459f1d67a9a3dd3e84bab013",
+      "evidence": [
+        "米制 SVG 尺寸/面积/门窗/30°占地、选择同步、平面创建、平移/滚轮缩放/双击及按钮适配、SVG 导出均通过"
+      ],
       "reason": null,
-      "updatedAt": null
+      "updatedAt": "2026-11-13T18:39:49Z",
+      "startedAt": "2026-11-13T18:39:49Z",
+      "completedAt": "2026-11-13T18:39:49Z"
     },
     "P1-05": {
-      "status": "pending",
-      "checkpoint": null,
-      "evidence": [],
+      "status": "done",
+      "checkpoint": "630248ddf108e59a459f1d67a9a3dd3e84bab013",
+      "evidence": [
+        "最终 browser-smoke.py --private-scans 全部通过，浏览器 errors=[]；保存重开、JSON 导入/导出与异会话拒绝通过；截图已人工检查；私有证据留本机"
+      ],
       "reason": null,
-      "updatedAt": null
+      "updatedAt": "2026-11-13T18:39:50Z",
+      "startedAt": "2026-11-13T18:39:50Z",
+      "completedAt": "2026-11-13T18:39:50Z"
     },
     "P2-01": {
       "status": "pending",
@@ -111,5 +138,205 @@
       "reason": null,
       "updatedAt": null
     }
-  }
+  },
+  "events": [
+    {
+      "at": "2026-11-13T18:33:08Z",
+      "task": "P0-02",
+      "action": "complete",
+      "detail": {
+        "commit": "4e572eea01e2bb4dac8cf8e6e75bbf0174a2f3d9",
+        "files": [
+          "automation/voxel-editor/.gitignore",
+          "automation/voxel-editor/BASELINE_REUSE.md",
+          "automation/voxel-editor/README.md",
+          "automation/voxel-editor/ROADMAP.md",
+          "automation/voxel-editor/RUNBOOK.md",
+          "automation/voxel-editor/STATE.json",
+          "automation/voxel-editor/TASKS.json",
+          "automation/voxel-editor/taskctl.py",
+          "automation/voxel-editor/test_taskctl.py",
+          "automation/voxel-editor/threejs-editor-research.md"
+        ],
+        "privacyReminder": "路径核验不等于内容隐私核验；推送前仍须检查 diff，尤其是 JSON 与日志。"
+      }
+    },
+    {
+      "at": "2026-11-13T18:33:08Z",
+      "task": "P0-03",
+      "action": "start",
+      "detail": "已领取；请先保存相关文件的 Git diff，再开始修改"
+    },
+    {
+      "at": "2026-11-13T18:33:08Z",
+      "task": "P0-03",
+      "action": "complete",
+      "detail": {
+        "commit": "4e572eea01e2bb4dac8cf8e6e75bbf0174a2f3d9",
+        "files": [
+          "automation/voxel-editor/.gitignore",
+          "automation/voxel-editor/BASELINE_REUSE.md",
+          "automation/voxel-editor/README.md",
+          "automation/voxel-editor/ROADMAP.md",
+          "automation/voxel-editor/RUNBOOK.md",
+          "automation/voxel-editor/STATE.json",
+          "automation/voxel-editor/TASKS.json",
+          "automation/voxel-editor/taskctl.py",
+          "automation/voxel-editor/test_taskctl.py",
+          "automation/voxel-editor/threejs-editor-research.md"
+        ],
+        "privacyReminder": "路径核验不等于内容隐私核验；推送前仍须检查 diff，尤其是 JSON 与日志。"
+      }
+    },
+    {
+      "at": "2026-11-13T18:33:08Z",
+      "task": "P1-01",
+      "action": "start",
+      "detail": "已领取；请先保存相关文件的 Git diff，再开始修改"
+    },
+    {
+      "at": "2026-11-13T18:39:48Z",
+      "task": "P1-01",
+      "action": "complete",
+      "detail": {
+        "commit": "630248ddf108e59a459f1d67a9a3dd3e84bab013",
+        "files": [
+          "experiment/README.md",
+          "experiment/index.html",
+          "experiment/实验6_平整语义房间与编辑器/LICENSE.baseline",
+          "experiment/实验6_平整语义房间与编辑器/README.md",
+          "experiment/实验6_平整语义房间与编辑器/browser-smoke.py",
+          "experiment/实验6_平整语义房间与编辑器/index.html",
+          "experiment/实验6_平整语义房间与编辑器/main.js",
+          "experiment/实验6_平整语义房间与编辑器/sample-room.mjs",
+          "experiment/实验6_平整语义房间与编辑器/scene-model.mjs",
+          "experiment/实验6_平整语义房间与编辑器/scene-model.test.mjs",
+          "experiment/实验6_平整语义房间与编辑器/style.css",
+          "experiment/实验6_平整语义房间与编辑器/vendor/THREE-LICENSE.txt",
+          "experiment/实验6_平整语义房间与编辑器/vendor/TransformControls.js"
+        ],
+        "privacyReminder": "路径核验不等于内容隐私核验；推送前仍须检查 diff，尤其是 JSON 与日志。"
+      }
+    },
+    {
+      "at": "2026-11-13T18:39:49Z",
+      "task": "P1-02",
+      "action": "start",
+      "detail": "已领取；请先保存相关文件的 Git diff，再开始修改"
+    },
+    {
+      "at": "2026-11-13T18:39:49Z",
+      "task": "P1-02",
+      "action": "complete",
+      "detail": {
+        "commit": "630248ddf108e59a459f1d67a9a3dd3e84bab013",
+        "files": [
+          "experiment/README.md",
+          "experiment/index.html",
+          "experiment/实验6_平整语义房间与编辑器/LICENSE.baseline",
+          "experiment/实验6_平整语义房间与编辑器/README.md",
+          "experiment/实验6_平整语义房间与编辑器/browser-smoke.py",
+          "experiment/实验6_平整语义房间与编辑器/index.html",
+          "experiment/实验6_平整语义房间与编辑器/main.js",
+          "experiment/实验6_平整语义房间与编辑器/sample-room.mjs",
+          "experiment/实验6_平整语义房间与编辑器/scene-model.mjs",
+          "experiment/实验6_平整语义房间与编辑器/scene-model.test.mjs",
+          "experiment/实验6_平整语义房间与编辑器/style.css",
+          "experiment/实验6_平整语义房间与编辑器/vendor/THREE-LICENSE.txt",
+          "experiment/实验6_平整语义房间与编辑器/vendor/TransformControls.js"
+        ],
+        "privacyReminder": "路径核验不等于内容隐私核验；推送前仍须检查 diff，尤其是 JSON 与日志。"
+      }
+    },
+    {
+      "at": "2026-11-13T18:39:49Z",
+      "task": "P1-03",
+      "action": "start",
+      "detail": "已领取；请先保存相关文件的 Git diff，再开始修改"
+    },
+    {
+      "at": "2026-11-13T18:39:49Z",
+      "task": "P1-03",
+      "action": "complete",
+      "detail": {
+        "commit": "630248ddf108e59a459f1d67a9a3dd3e84bab013",
+        "files": [
+          "experiment/README.md",
+          "experiment/index.html",
+          "experiment/实验6_平整语义房间与编辑器/LICENSE.baseline",
+          "experiment/实验6_平整语义房间与编辑器/README.md",
+          "experiment/实验6_平整语义房间与编辑器/browser-smoke.py",
+          "experiment/实验6_平整语义房间与编辑器/index.html",
+          "experiment/实验6_平整语义房间与编辑器/main.js",
+          "experiment/实验6_平整语义房间与编辑器/sample-room.mjs",
+          "experiment/实验6_平整语义房间与编辑器/scene-model.mjs",
+          "experiment/实验6_平整语义房间与编辑器/scene-model.test.mjs",
+          "experiment/实验6_平整语义房间与编辑器/style.css",
+          "experiment/实验6_平整语义房间与编辑器/vendor/THREE-LICENSE.txt",
+          "experiment/实验6_平整语义房间与编辑器/vendor/TransformControls.js"
+        ],
+        "privacyReminder": "路径核验不等于内容隐私核验；推送前仍须检查 diff，尤其是 JSON 与日志。"
+      }
+    },
+    {
+      "at": "2026-11-13T18:39:49Z",
+      "task": "P1-04",
+      "action": "start",
+      "detail": "已领取；请先保存相关文件的 Git diff，再开始修改"
+    },
+    {
+      "at": "2026-11-13T18:39:49Z",
+      "task": "P1-04",
+      "action": "complete",
+      "detail": {
+        "commit": "630248ddf108e59a459f1d67a9a3dd3e84bab013",
+        "files": [
+          "experiment/README.md",
+          "experiment/index.html",
+          "experiment/实验6_平整语义房间与编辑器/LICENSE.baseline",
+          "experiment/实验6_平整语义房间与编辑器/README.md",
+          "experiment/实验6_平整语义房间与编辑器/browser-smoke.py",
+          "experiment/实验6_平整语义房间与编辑器/index.html",
+          "experiment/实验6_平整语义房间与编辑器/main.js",
+          "experiment/实验6_平整语义房间与编辑器/sample-room.mjs",
+          "experiment/实验6_平整语义房间与编辑器/scene-model.mjs",
+          "experiment/实验6_平整语义房间与编辑器/scene-model.test.mjs",
+          "experiment/实验6_平整语义房间与编辑器/style.css",
+          "experiment/实验6_平整语义房间与编辑器/vendor/THREE-LICENSE.txt",
+          "experiment/实验6_平整语义房间与编辑器/vendor/TransformControls.js"
+        ],
+        "privacyReminder": "路径核验不等于内容隐私核验；推送前仍须检查 diff，尤其是 JSON 与日志。"
+      }
+    },
+    {
+      "at": "2026-11-13T18:39:50Z",
+      "task": "P1-05",
+      "action": "start",
+      "detail": "已领取；请先保存相关文件的 Git diff，再开始修改"
+    },
+    {
+      "at": "2026-11-13T18:39:50Z",
+      "task": "P1-05",
+      "action": "complete",
+      "detail": {
+        "commit": "630248ddf108e59a459f1d67a9a3dd3e84bab013",
+        "files": [
+          "experiment/README.md",
+          "experiment/index.html",
+          "experiment/实验6_平整语义房间与编辑器/LICENSE.baseline",
+          "experiment/实验6_平整语义房间与编辑器/README.md",
+          "experiment/实验6_平整语义房间与编辑器/browser-smoke.py",
+          "experiment/实验6_平整语义房间与编辑器/index.html",
+          "experiment/实验6_平整语义房间与编辑器/main.js",
+          "experiment/实验6_平整语义房间与编辑器/sample-room.mjs",
+          "experiment/实验6_平整语义房间与编辑器/scene-model.mjs",
+          "experiment/实验6_平整语义房间与编辑器/scene-model.test.mjs",
+          "experiment/实验6_平整语义房间与编辑器/style.css",
+          "experiment/实验6_平整语义房间与编辑器/vendor/THREE-LICENSE.txt",
+          "experiment/实验6_平整语义房间与编辑器/vendor/TransformControls.js"
+        ],
+        "privacyReminder": "路径核验不等于内容隐私核验；推送前仍须检查 diff，尤其是 JSON 与日志。"
+      }
+    }
+  ]
 }

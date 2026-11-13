@@ -2,7 +2,7 @@
 
 面向居家改造和适老化沟通的空间采集与可编辑房间平台。第一阶段聚焦 **iPhone 在同一次 AR 会话中取得可对齐的房间数据**，让现场人员与 Mac 编辑端理解同一个空间。后续再做写实重建、布局求解、品牌设备匹配与施工辅助。
 
-本项目以 [3D Model Anything / House Capture](https://github.com/wesbos/3d-model-anything) 为技术基线，上游源码、署名和许可文件保留在 `reference/3d-model-anything/`。该基线能采集 RoomPlan 结构、LiDAR 三角网格、照片、深度、相机位姿和 ARWorldMap；它不自动完成下列全部产品目标。
+本项目以 [3D Model Anything / House Capture](https://github.com/wesbos/3d-model-anything) 为技术基线，上游源码、署名和许可文件已保留在 [reference/3d-model-anything/](reference/3d-model-anything/)，复制范围和本地修复见 [参考快照说明](reference/README.md)。该基线能采集 RoomPlan 结构、LiDAR 三角网格、照片、深度、相机位姿和 ARWorldMap；它不自动完成下列全部产品目标。
 
 ## 需求范围
 
@@ -34,7 +34,7 @@
 
 统一房间数据至少应记录 schema 版本、米单位和坐标轴、房间原点、会话与帧 ID、时间戳、图像内参、相机/房间变换、网格顶点/面/类别、语义来源/置信度和可选世界地图。扫描事实与算法推断分开保存。第一阶段顺序：真实扫描 → 验证数据同坐标 → 恢复定位与语音标签 → Mac 预览 → 扫描后 3DGS。
 
-**状态：** 当前处于需求和基线整理阶段。House Capture 已在本机 iPhone 15 Pro 上完成初步采集；实时粗点云、语音标签、Mac 实时通信、3DGS 及后续装修能力仍待实现或验证。后续技术路线放在 `docs/`。
+**状态：** 当前处于需求和基线整理阶段。House Capture 基线已导入，并在本机 iPhone 15 Pro 上完成初步采集；实时粗点云、语音标签、Mac 实时通信、3DGS 及后续装修能力仍待实现或验证。后续技术路线放在 `docs/`。
 
 ## 来源与许可
 

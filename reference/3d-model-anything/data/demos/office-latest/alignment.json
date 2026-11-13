@@ -1,0 +1,115 @@
+{
+  "latestRoomToOfficeV2": [
+    -0.006757337490512493,
+    0.0,
+    -0.9999771689343909,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    0.9999771689343909,
+    0.0,
+    -0.006757337490512493,
+    0.0,
+    0.012946648671335083,
+    -0.0031880147646073864,
+    0.055127692011545756,
+    1.0
+  ],
+  "yawRadians": 1.5775537157116173,
+  "yawDegrees": 90.38716986545657,
+  "translationMeters": [
+    0.012946648671335083,
+    -0.0031880147646073864,
+    0.055127692011545756
+  ],
+  "architectureInitial": [
+    1.5736668659526285,
+    0.006215668643782145,
+    0.0,
+    0.03556339680561402
+  ],
+  "architecturePairsLatestOld": [
+    [
+      0,
+      1
+    ],
+    [
+      1,
+      3
+    ],
+    [
+      2,
+      4
+    ],
+    [
+      3,
+      5
+    ],
+    [
+      4,
+      7
+    ],
+    [
+      5,
+      8
+    ],
+    [
+      6,
+      9
+    ],
+    [
+      9,
+      0
+    ],
+    [
+      10,
+      0
+    ],
+    [
+      12,
+      6
+    ]
+  ],
+  "architectureInitialPlaneRmsMeters": 0.028934350011264074,
+  "architectureFinalPlaneRmsMeters": 0.03225383224156528,
+  "meshSampleCount": 59031,
+  "meshInlierCount": 52297,
+  "meshInlierPointPlaneRmsMeters": 0.037484749769824015,
+  "meshInlierNearestDistanceMedianMeters": 0.02030519286595098,
+  "meshInlierNearestDistanceP90Meters": 0.07427254461429358,
+  "method": "Wall correspondence robust plane least squares; 4DoF (yaw XYZ translation) point-to-plane ICP on perimeter/floor/ceiling mesh, 16cm association gate; no scale or tilt",
+  "limitations": "RoomPlan dimensions differ and wing wall is angled in latest. Rigid registration cannot correct scan drift or changed furniture. Mesh residual excludes nonmatching points over12cm and furniture interiors.",
+  "floorSamples": {
+    "latest": {
+      "count": 29654,
+      "modeMeters": 0.0050000000000000044,
+      "localMedianMeters": 0.004917785557556176
+    },
+    "v2": {
+      "count": 53316,
+      "modeMeters": 0.01100000000000001,
+      "localMedianMeters": 0.011670563806657652
+    }
+  },
+  "matrix": [
+    -0.006757337490512493,
+    0.0,
+    -0.9999771689343909,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    0.9999771689343909,
+    0.0,
+    -0.006757337490512493,
+    0.0,
+    0.012946648671335083,
+    -0.0031880147646073864,
+    0.055127692011545756,
+    1.0
+  ],
+  "floorTranslationMeters": -0.0031880147646073864
+}

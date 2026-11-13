@@ -1,0 +1,106 @@
+{
+  "matrix": [
+    -9.019163498980777e-05,
+    0.0,
+    -0.9999999959327345,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    0.9999999959327345,
+    0.0,
+    -9.019163498980777e-05,
+    0.0,
+    -0.004170078340964408,
+    -0.0010308408697266487,
+    -0.023985525745643457,
+    1.0
+  ],
+  "yawRadians": 1.5708865184300087,
+  "yawDegrees": 90.00516760003931,
+  "translationMeters": [
+    -0.004170078340964408,
+    -0.0010308408697266487,
+    -0.023985525745643457
+  ],
+  "architectureInitial": [
+    1.5643887260153142,
+    0.0037580056391339346,
+    0.0,
+    -0.010335643774314016
+  ],
+  "architecturePairsV4V2": [
+    [
+      0,
+      0
+    ],
+    [
+      1,
+      1
+    ],
+    [
+      2,
+      3
+    ],
+    [
+      3,
+      4
+    ],
+    [
+      4,
+      6
+    ],
+    [
+      6,
+      7
+    ],
+    [
+      8,
+      8
+    ],
+    [
+      9,
+      9
+    ],
+    [
+      10,
+      2
+    ]
+  ],
+  "architectureInitialPlaneRmsMeters": 0.020735579101418128,
+  "architectureFinalPlaneRmsMeters": 0.026052457832954564,
+  "meshSampleCount": 101438,
+  "meshInlierCount": 68521,
+  "meshInlierFraction": 0.6754963623099824,
+  "meshInlierPointPlaneRmsMeters": 0.03302521396179703,
+  "meshInlierNearestDistanceMedianMeters": 0.018013344881803794,
+  "meshInlierNearestDistanceP90Meters": 0.06142405651454903,
+  "method": "Wall correspondence robust plane least squares; 4DoF (yaw XYZ translation) point-to-plane ICP on perimeter/floor/ceiling mesh, 16cm association gate and normal agreement >0.8; no scale or tilt",
+  "limitations": "RoomPlan wall dimensions differ. V4 detects a stepped solid wall behind the lounge chair and falsely labels its acoustic panel a window; photos84\u201389 show no opening. Mesh confirms the wall step but places the recessed face about6cm in front of RoomPlan. Rigid registration cannot correct scan drift or changed furniture. Mesh residual excludes nonmatching points over12cm, normal disagreements and furniture interiors.",
+  "coordinateFrame": "matrix maps original Office v4 room-local points into Office v2 frame. scan-aligned.json is already in Office v2; scan.glb remains original Office v4 room-local.",
+  "floorTranslationMeters": -0.0010308408697266487,
+  "wallMeanPlaneResidualMeters": {
+    "v4-0/v2-0": 0.0040619727969651975,
+    "v4-1/v2-1": -0.021391970399699645,
+    "v4-2/v2-3": -0.0044272165426212495,
+    "v4-3/v2-4": 0.014403132196528069,
+    "v4-4/v2-6": -0.030494980364935993,
+    "v4-6/v2-7": -0.05255401514386729,
+    "v4-8/v2-8": 0.011112477561129368,
+    "v4-9/v2-9": 0.029745932723001658,
+    "v4-10/v2-2": 0.02659298864170307
+  },
+  "floorSamples": {
+    "v4": {
+      "count": 31198,
+      "modeMeters": 0.019000000000000017,
+      "localMedianMeters": 0.010761764247131378
+    },
+    "v2": {
+      "count": 53316,
+      "modeMeters": 0.01100000000000001,
+      "localMedianMeters": 0.011670563806657652
+    }
+  }
+}

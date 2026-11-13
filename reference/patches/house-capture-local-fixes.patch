@@ -1,0 +1,99 @@
+diff --git a/apps/house-capture/HouseCapture/CaptureController.swift b/apps/house-capture/HouseCapture/CaptureController.swift
+index f6ceaec..43cc495 100644
+--- a/apps/house-capture/HouseCapture/CaptureController.swift
++++ b/apps/house-capture/HouseCapture/CaptureController.swift
+@@ -708,6 +708,11 @@ final class CaptureController: NSObject, ObservableObject, RoomCaptureSessionDel
+     Task {
+       await drainPhotos()
+       guard !closed, phase == .finishingRoom else { return }
++      // RoomPlan can keep mesh anchors in ARSession without forwarding them to
++      // ARSCNView's renderer delegate. Queue the current frame before exporting.
++      await withCheckedContinuation { c in
++        scanView.refeedEngine(from: arSession) { c.resume() }
++      }
+       preStopMesh = await withCheckedContinuation { c in engine.exportPLY(to: file) { c.resume(returning: $0) } }
+       guard !closed, phase == .finishingRoom else { return }
+       cameraControl.unlock()
+@@ -1140,6 +1145,9 @@ final class CaptureController: NSObject, ObservableObject, RoomCaptureSessionDel
+     }
+     let frame = arSession.currentFrame
+     let meshes = frame?.anchors.compactMap { $0 as? ARMeshAnchor } ?? []
++    if phase == .scanning, !paused, captureReady, !meshes.isEmpty {
++      scanView.refeedEngine(from: arSession)
++    }
+     diagnostics.recordSample(.init(
+       t: Date().timeIntervalSince(startedAt), phase: "\(phase)",
+       thermal: Diagnostics.thermalDescription(ProcessInfo.processInfo.thermalState),
+diff --git a/apps/house-capture/HouseCapture/Coverage.swift b/apps/house-capture/HouseCapture/Coverage.swift
+index 60a0c1c..dd80dae 100644
+--- a/apps/house-capture/HouseCapture/Coverage.swift
++++ b/apps/house-capture/HouseCapture/Coverage.swift
+@@ -54,14 +54,21 @@ struct Coverage {
+       }
+       return Wall(a: a, b: b, segments: segments, lowConfidence: wall.confidence != .high)
+     }
+-    objects = room.objects.map { obj in
++    var objectBoxes: [Box] = []
++    objectBoxes.reserveCapacity(room.objects.count)
++    for obj in room.objects {
+       let t = obj.transform
+       let c = simd_make_float3(t.columns.3)
+-      let x = simd_make_float3(t.columns.0) * obj.dimensions.x / 2
+-      let z = simd_make_float3(t.columns.2) * obj.dimensions.z / 2
+-      let corners = [c - x - z, c + x - z, c + x + z, c - x + z].map { SIMD2($0.x, $0.z) }
+-      return Box(corners: corners, covered: photos.contains { $0.sees(c, surfaceNormal: nil) }, label: "\(obj.category)")
++      let halfWidth = obj.dimensions.x / 2
++      let halfDepth = obj.dimensions.z / 2
++      let x: SIMD3<Float> = simd_make_float3(t.columns.0) * halfWidth
++      let z: SIMD3<Float> = simd_make_float3(t.columns.2) * halfDepth
++      let corners3D: [SIMD3<Float>] = [c - x - z, c + x - z, c + x + z, c - x + z]
++      let corners = corners3D.map { SIMD2<Float>($0.x, $0.z) }
++      let covered = photos.contains { photo in photo.sees(c, surfaceNormal: nil) }
++      objectBoxes.append(Box(corners: corners, covered: covered, label: "\(obj.category)"))
+     }
++    objects = objectBoxes
+     gaps = (room.doors + room.openings).map { Gap(a: Self.endpoints($0).0, b: Self.endpoints($0).1, isWindow: false) }
+       + room.windows.map { Gap(a: Self.endpoints($0).0, b: Self.endpoints($0).1, isWindow: true) }
+   }
+diff --git a/apps/house-capture/HouseCapture/CoverageEngine.swift b/apps/house-capture/HouseCapture/CoverageEngine.swift
+index 56b57fd..fa971b6 100644
+--- a/apps/house-capture/HouseCapture/CoverageEngine.swift
++++ b/apps/house-capture/HouseCapture/CoverageEngine.swift
+@@ -757,11 +757,14 @@ final class CoverageEngine: @unchecked Sendable {
+       let x = simd_make_float3(t.columns.0), y = simd_make_float3(t.columns.1), z = simd_make_float3(t.columns.2)
+       let c = simd_make_float3(t.columns.3)
+       // top + four sides
+-      for (off, n, w, h, ax, ay) in [
+-        (y * d.y / 2, y, d.x, d.z, x, z),
+-        (z * d.z / 2, z, d.x, d.y, x, y), (-z * d.z / 2, -z, d.x, d.y, x, y),
+-        (x * d.x / 2, x, d.z, d.y, z, y), (-x * d.x / 2, -x, d.z, d.y, z, y),
+-      ] {
++      let halfX = d.x / 2, halfY = d.y / 2, halfZ = d.z / 2
++      typealias Face = (offset: SIMD3<Float>, normal: SIMD3<Float>, width: Float, height: Float, axisX: SIMD3<Float>, axisY: SIMD3<Float>)
++      let faces: [Face] = [
++        (y * halfY, y, d.x, d.z, x, z),
++        (z * halfZ, z, d.x, d.y, x, y), (-z * halfZ, -z, d.x, d.y, x, y),
++        (x * halfX, x, d.z, d.y, z, y), (-x * halfX, -x, d.z, d.y, z, y),
++      ]
++      for (off, n, w, h, ax, ay) in faces {
+         var m = matrix_identity_float4x4
+         m.columns.0 = SIMD4(ax, 0); m.columns.1 = SIMD4(ay, 0); m.columns.2 = SIMD4(n, 0); m.columns.3 = SIMD4(c + off, 1)
+         surface(m, w, h, n)
+diff --git a/apps/house-capture/HouseCapture/ScanView.swift b/apps/house-capture/HouseCapture/ScanView.swift
+index df7d574..bf0178c 100644
+--- a/apps/house-capture/HouseCapture/ScanView.swift
++++ b/apps/house-capture/HouseCapture/ScanView.swift
+@@ -146,11 +146,12 @@ final class ScanView: NSObject, ARSCNViewDelegate {
+ 
+   /// Hand every live mesh anchor to the engine again (after it wasn't fed for a while).
+   /// Copying the buffers is heavy, so it happens off main; holding the anchors keeps them valid.
+-  func refeedEngine(from session: ARSession) {
++  func refeedEngine(from session: ARSession, completion: (@Sendable () -> Void)? = nil) {
+     let anchors = session.currentFrame?.anchors.compactMap { $0 as? ARMeshAnchor } ?? []
+     let engine = engine
+     DispatchQueue.global(qos: .userInitiated).async {
+       for a in anchors { engine.update(a) }
++      completion?()
+     }
+   }
+ 

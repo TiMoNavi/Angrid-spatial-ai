@@ -1,0 +1,224 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-11-14",
+  "status": "experiment10_in_progress",
+  "nextAction": "Integrate accepted E8 layers and E9 classified outputs into an isolated OpenPlan3D editor, then independently verify and push.",
+  "scope": {
+    "scanId": "office-2",
+    "office1Policy": "Read-only depth/TSDF fallback. No original LiDAR mesh is fabricated.",
+    "iphoneChanges": false,
+    "referenceChanges": false,
+    "experiment7Changes": false,
+    "finalPushAuthorizedByUser": true,
+    "pushPolicy": "After all three experiments pass, push the reviewed work branch without force. Only code and documentation; no private assets or unrelated existing changes."
+  },
+  "directories": {
+    "plan": "experiment/实验8-10_分层切分体素路线/",
+    "experiment8": "experiment/实验8_扫描证据分层查看器/",
+    "experiment9": "experiment/实验9_先切分后分类体素/",
+    "experiment10": "experiment/实验10_原版界面分层体素整合/"
+  },
+  "protectedPaths": [
+    "reference/3d-model-anything/",
+    "reference/openPlan3D/",
+    "experiment/实验7_确定性层级体素/",
+    "experiment/扫描分层预览/"
+  ],
+  "neverCommit": [
+    "experiment/.private/",
+    "**/*.zip",
+    "**/*.ply",
+    "**/*.splat",
+    "**/*.ksplat",
+    "**/*.spz",
+    "**/node_modules/",
+    "**/.svelte-kit/",
+    "private scan photos and generated private binary meshes"
+  ],
+  "baselineCheckpoint": "0e533b9",
+  "git": {
+    "expectedBranch": "codex/voxel-editor-v1",
+    "remote": "https://github.com/TiMoNavi/Angrid-spatial-ai.git",
+    "experiment8Commit": "4298e9ac26ff459c3c6f3ec89e5d25f9904bbc6a",
+    "experiment9Commit": "c925290ca96b1db8f8de9d2f65b0730cb2e3fbbd",
+    "experiment10Commit": null,
+    "pushCommit": null,
+    "pushedAt": null
+  },
+  "review": {
+    "status": "approved",
+    "reviewer": "root-agent",
+    "notes": [
+      "Parent reviewed plan and code; see REVIEW.md.",
+      "Do not claim independent human-labelled accuracy.",
+      "Preserve physical wall dimensions; residual evidence is not automatically clutter."
+    ]
+  },
+  "tasks": {
+    "GATE-0": {
+      "status": "done",
+      "dependsOn": [],
+      "commit": null,
+      "evidence": [
+        "Root approved plan with explicit constraints in REVIEW.md"
+      ]
+    },
+    "E8-01": {
+      "status": "done",
+      "dependsOn": [
+        "GATE-0"
+      ],
+      "commit": "4298e9ac26ff459c3c6f3ec89e5d25f9904bbc6a",
+      "evidence": []
+    },
+    "E8-02": {
+      "status": "done",
+      "dependsOn": [
+        "E8-01"
+      ],
+      "commit": "4298e9ac26ff459c3c6f3ec89e5d25f9904bbc6a",
+      "evidence": []
+    },
+    "E8-03": {
+      "status": "done",
+      "dependsOn": [
+        "E8-02"
+      ],
+      "commit": "4298e9ac26ff459c3c6f3ec89e5d25f9904bbc6a",
+      "evidence": []
+    },
+    "E8-04": {
+      "status": "done",
+      "dependsOn": [
+        "E8-03"
+      ],
+      "commit": "4298e9ac26ff459c3c6f3ec89e5d25f9904bbc6a",
+      "evidence": [
+        "npm test: 6 passed",
+        "Microsoft Edge: 13 checks passed, no pageerrors or failed requests",
+        "Root visual review of classified/segments screenshot and independent geometry audit"
+      ]
+    },
+    "E9-01": {
+      "status": "done",
+      "dependsOn": [
+        "GATE-0"
+      ],
+      "commit": "c925290ca96b1db8f8de9d2f65b0730cb2e3fbbd",
+      "evidence": []
+    },
+    "E9-02": {
+      "status": "done",
+      "dependsOn": [
+        "E9-01"
+      ],
+      "commit": "c925290ca96b1db8f8de9d2f65b0730cb2e3fbbd",
+      "evidence": []
+    },
+    "E9-03": {
+      "status": "done",
+      "dependsOn": [
+        "E9-01",
+        "E9-02"
+      ],
+      "commit": "c925290ca96b1db8f8de9d2f65b0730cb2e3fbbd",
+      "evidence": []
+    },
+    "E9-04": {
+      "status": "done",
+      "dependsOn": [
+        "E9-03"
+      ],
+      "commit": "c925290ca96b1db8f8de9d2f65b0730cb2e3fbbd",
+      "evidence": []
+    },
+    "E9-05": {
+      "status": "done",
+      "dependsOn": [
+        "E9-02",
+        "E9-03",
+        "E9-04"
+      ],
+      "commit": "c925290ca96b1db8f8de9d2f65b0730cb2e3fbbd",
+      "evidence": []
+    },
+    "E9-06": {
+      "status": "done",
+      "dependsOn": [
+        "E9-05"
+      ],
+      "commit": "c925290ca96b1db8f8de9d2f65b0730cb2e3fbbd",
+      "evidence": [
+        "python3 test_pipeline.py: 8 passed",
+        "verify_outputs.py: conservation/hash/geometry checks passed",
+        "Microsoft Edge smoke: 0 pageerrors, 0 failed requests",
+        "QA_REPORT.md: 5 candidates, unknown/conflicts, clutter/override regression and limits"
+      ]
+    },
+    "E10-01": {
+      "status": "in_progress",
+      "dependsOn": [
+        "E8-04",
+        "E9-06"
+      ],
+      "commit": null,
+      "evidence": []
+    },
+    "E10-02": {
+      "status": "pending",
+      "dependsOn": [
+        "E10-01"
+      ],
+      "commit": null,
+      "evidence": []
+    },
+    "E10-03": {
+      "status": "pending",
+      "dependsOn": [
+        "E10-02"
+      ],
+      "commit": null,
+      "evidence": []
+    },
+    "E10-04": {
+      "status": "pending",
+      "dependsOn": [
+        "E10-03"
+      ],
+      "commit": null,
+      "evidence": []
+    }
+  },
+  "measurements": {
+    "source": "Existing local Office 2 preview and segments report inspected 2026-11-14",
+    "rawVertices": 98553,
+    "rawFaces": 176922,
+    "existingEligibleFaces": 47061,
+    "existingAssignedFacesBeforeCleanup": 16832,
+    "existingFurnitureCandidates": 5,
+    "existingWatertightFurnitureCandidates": 0,
+    "note": "These are baseline counts, not segmentation accuracy or a clutter label."
+  },
+  "events": [
+    {
+      "at": "2026-11-14",
+      "action": "plan_created",
+      "detail": "Planning agent inspected preview, experiment 4 and experiment 7 code and private prepared metadata; implementation not started."
+    },
+    {
+      "at": "2026-11-14",
+      "action": "parent_gate_0_approved",
+      "detail": "Root reviewed CONTRACT/TASKS/local baselines, corrected self-approval record, and authorized isolated E8/E9 execution."
+    },
+    {
+      "at": "2026-11-14",
+      "action": "experiment9_accepted",
+      "detail": "Independent parent geometry audit and 8 synthetic tests passed; committed code/documentation only as c925290."
+    },
+    {
+      "at": "2026-11-14",
+      "action": "experiment8_accepted_and_experiment10_authorized",
+      "detail": "E8 committed as 4298e9a; E8/E9 acceptance gates passed. E10 authorized with preserved native OpenPlan UI, per-layer registry and identity-safe project saving."
+    }
+  ]
+}

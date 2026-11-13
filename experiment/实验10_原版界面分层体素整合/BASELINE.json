@@ -1,0 +1,45 @@
+{
+  "experiment": 10,
+  "copiedFromCommit": "0e533b9",
+  "copiedFromPath": "experiment/实验7_确定性层级体素",
+  "upstreamRepository": "https://github.com/laanlabs/openPlan3D",
+  "upstreamRevision": "b0727b54da5f0f642722dcc88cc52d7236fadc9e",
+  "license": "MIT; openplan/LICENSE",
+  "copiedOnly": "Git-tracked openplan and voxel-core files; no private data, dependencies, or build output",
+  "inheritedManifest": "openplan/UPSTREAM_MANIFEST.json describes original upstream files before E7/E10 changes",
+  "preservedWorkflow": [
+    "openplan/src/lib/services/agentBridge.ts",
+    "openplan/src/lib/server/agentBridgeMcp.ts",
+    "openplan/src/lib/skills/"
+  ],
+  "sourceFiles": [
+    {
+      "path": "openplan/package-lock.json",
+      "sourceGitBlob": "6831c9787bd764ea1aaed81800ac341a43fadc29"
+    },
+    {
+      "path": "openplan/src/lib/components/viewer3d/ThreeViewer.svelte",
+      "sourceGitBlob": "02fdfa03f7aa192730f23106943d67219ac4761a"
+    },
+    {
+      "path": "openplan/src/routes/editor/+page.svelte",
+      "sourceGitBlob": "b66f6822751fbf3b21467ae595f95dfa0be09a89"
+    },
+    {
+      "path": "openplan/src/lib/services/agentBridge.ts",
+      "sourceGitBlob": "7e9d1aa67c5b2048d782a408f311047161927254"
+    },
+    {
+      "path": "openplan/src/lib/server/agentBridgeMcp.ts",
+      "sourceGitBlob": "777b1496221d4f3a18df4fa985fd6ea9401ce2e2"
+    },
+    {
+      "path": "openplan/src/lib/skills/shared.ts",
+      "sourceGitBlob": "4064dfa97f24d3737eb8931511a2d2e631f600af"
+    },
+    {
+      "path": "voxel-core/index.ts",
+      "sourceGitBlob": "e941c46eacc3b1f4c9716d2568666e434bd2353c"
+    }
+  ]
+}

@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>实验4 · 扫描结果的体素网格转换</title>
+  <link rel="stylesheet" href="../shared/style.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="site-header"><div class="shell header-inner"><a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true">⌖</span> Angrid 空间实验室</a><nav class="site-nav" aria-label="实验导航"><a href="../实验1_手机扫描包长什么样/index.html">手机扫描包</a><a href="../实验2_扫描包怎样处理/index.html">处理过程</a><a href="../实验3_最终查看网页/index.html">查看网页</a><a href="index.html" aria-current="page">体素转换</a></nav></div></header>
+<main class="shell">
+  <section class="intro"><div><p class="sequence">实验 04 / 扫描 → 网格 → 粗家具</p><h1>从扫描网格，到可核对的体素</h1><p class="lead">同一房间坐标里对照真实扫描采样、可调密度的表面体素，以及 RoomPlan 推断的家具占位。拖动、缩放并点选家具，检查规则方块与原始证据的差距。</p></div><div class="intro-note"><strong>两种格子，两个来源</strong>青绿色格子只说明扫描表面落在这里；橙色等方块来自 RoomPlan 家具边界框。未落点的空间仍未判定为空。</div></section>
+  <div id="metrics" class="metric-strip" aria-live="polite"></div>
+  <div class="lab-grid">
+    <aside class="panel voxel-panel">
+      <h2>转换控制台</h2>
+      <div class="field"><label for="scan-select">独立扫描会话</label><select id="scan-select"><option value="office-2">Office 2.zip · 274 帧深度 + PLY</option><option value="office-1">Office.zip · 434 帧深度</option></select></div>
+      <p id="source-note" class="voxel-source-note"></p>
+      <div class="field"><label for="evidence-select">表面证据来源</label><select id="evidence-select"><option value="depth">全帧深度投影 · 表面点</option><option value="fusion">官方 TSDF 重建 · 网格</option><option value="ply">原包 LiDAR PLY · 网格</option></select></div>
+      <div class="field"><label for="grid-step">格子边长 / 密度</label><select id="grid-step"><option value="0.2">20 cm · 概览</option><option value="0.1" selected>10 cm · 默认</option><option value="0.05">5 cm · 较细</option><option value="0.025">2.5 cm · 最细实验档</option></select></div>
+      <p id="grid-note" class="voxel-small"></p>
+      <h3>表面证据</h3><div class="button-row"><button id="show-voxels" type="button" class="control" aria-pressed="true">转换后的表面格</button><button id="show-points" type="button" class="control" aria-pressed="false">证据原貌</button></div>
+      <div class="field surface-cut"><label for="surface-height">观察截面 <output id="surface-height-value" for="surface-height">2.1 m</output></label><input id="surface-height" type="range" min="0.4" max="3.5" step="0.1" value="2.1"><p class="voxel-small">隐藏截面上方的扫描表面，便于看内部；不修改数据和格数。</p></div>
+      <h3>叠加层</h3><div class="button-row"><button id="toggle-furniture" type="button" class="control" aria-pressed="true">RoomPlan 粗家具</button><button id="toggle-room" type="button" class="control" aria-pressed="true">房间边界</button><button id="reset-view" type="button" class="control">复位视角</button></div>
+      <h3>选择一个识别框</h3><div id="object-list" class="voxel-object-list" aria-label="RoomPlan 识别物体"></div>
+      <div id="object-detail" class="voxel-detail" aria-live="polite">载入中…</div>
+    </aside>
+    <div>
+      <div id="voxel-display" class="display"><canvas id="voxel-canvas" aria-label="扫描表面体素与 RoomPlan 家具占位的可旋转三维对照"></canvas><div id="voxel-status" class="display-status" role="status">载入扫描数据…</div><div class="display-tip">拖动旋转 · 滚轮缩放 · 点击家具选中</div></div>
+      <div class="voxel-legend" aria-label="图层图例"><span><i class="legend-swatch scanned"></i> 扫描表面证据</span><span><i class="legend-swatch inferred"></i> RoomPlan 粗家具</span><span><i class="legend-swatch outline"></i> 精确米制边界</span></div>
+      <div class="viewer-controls"><span id="viewer-caption" class="viewer-caption">房间 XZ 为地面 · Y 向上 · 单位米</span><a class="control" href="../实验3_最终查看网页/index.html">返回结构预览</a></div>
+    </div>
+  </div>
+  <section class="section"><h2 class="section-heading">怎样读这张图</h2><div class="stage-grid"><div class="artifact"><h3>01 · 全帧深度入房间坐标</h3><p>两份 ZIP 分别处理全部 434 / 274 帧深度。直接投影每帧每 4 像素取样；官方 TSDF 则融合完整深度图。两者均取置信度 ≥1、最大深度 3.5 m。相机位姿与 worldToRoom 决定米制房间坐标，两个会话不拼接。</p></div><div class="artifact"><h3>02 · 官方重建之后接体素</h3><p>默认查看原版 reconstruct_bundle.py 生成的融合网格，再由实验适配器计算三角面与格子相交。可切回着色三角网格原貌，或对比直接深度投影。第二包 PLY 先按 inroom 筛选，再做同样的表面体素化。两种网格都已在房间坐标中，不重复变换。</p></div><div class="artifact"><h3>03 · 粗家具占位</h3><p>RoomPlan 的类别、中心、尺寸和朝向决定家具局部方块。为避免浏览器画出大量看不见的内部面，只渲染外壳；统计的占位格仍包含内部，且仅代表识别框。选中家具可检查框内扫描点位，但这不等于自动分割出了家具。</p></div><div class="artifact"><h3>04 · 改密度不改测量</h3><p>20 / 10 / 5 / 2.5 cm 各档独立从原始表面或米制家具框生成，家具中心、尺寸与朝向不随显示密度改变。超过 70,000 个表面格时只抽显部分，统计仍为完整格数；细格不会补出未扫描的细节。</p></div></div></section>
+  <section class="section"><h2 class="section-heading">原版哪些输出值得对照</h2><div class="stage-grid"><div class="artifact"><h3>office-v4 · 细化办公室案例</h3><p>原版 demos/office-v4/index.ts 是最终可编辑 Three.js 办公室案例，包含按照片修正的家具、材质与灯光。它代表后续建模与比较的目标，没有直接提供“扫描一键变体素家具”的结果。</p></div><div class="artifact"><h3>scan / alignment / reconstruction · 数据参照</h3><p>原版 scan.json 对应实验 2 的 converted.json；alignment.json 示范如何记录显式配准和误差，其矩阵不用于我们的扫描。本页已实际运行原版深度重建脚本，生成两份 scan_room.ply，再接独立体素适配器。<a href="分析.md">查看文件对应、运行结果与边界</a>。</p></div></div></section>
+  <section class="section callout warn"><strong>下一步才是装修编辑</strong><p>这个实验先让“杂乱扫描”和“可解释的粗家具”并列可核对。用户手动创建方块、成组打标签、在地面拖动并调整高度，随后只对选中的物体做受约束 AI 细化，最后回 AR 半透明对照；这些属于后续交互实验，不把它们伪装成已完成的扫描自动化。</p></section>
+</main>
+<footer class="shell footer">本机私有扫描数据仅用于技术实验。参考项目保持只读。<a href="分析.md">查看实验分析</a></footer>
+<script type="importmap">{"imports":{"three":"../shared/vendor/three.module.js"}}</script>
+<script type="module" src="../shared/voxel-page.js"></script>
+</body>
+</html>

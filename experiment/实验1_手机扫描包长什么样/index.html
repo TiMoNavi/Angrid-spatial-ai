@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>实验1 · 手机扫描包长什么样</title><link rel="stylesheet" href="../shared/style.css"></head>
+<body>
+<header class="site-header"><div class="shell header-inner"><a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true">⌖</span> Angrid 空间实验室</a><nav class="site-nav" aria-label="实验导航"><a href="index.html" aria-current="page">手机扫描包</a><a href="../实验2_扫描包怎样处理/index.html">处理过程</a><a href="../实验3_最终查看网页/index.html">查看网页</a></nav></div></header>
+<main class="shell">
+  <section class="intro"><div><p class="sequence">实验 01 / 原始证据</p><h1>手机扫描结束，ZIP 里到底装了什么</h1><p class="lead">下方不是装修模型。网格直接来自第二份 ZIP；点云是把少量原始深度帧按相机内参和位姿投影出来的显示辅助。可以拖动看形状，但这一步没有补洞、融合或美化。</p></div><div class="intro-note"><strong>手机为何已经能看 3D？</strong>采集时 ARKit/RoomPlan 已形成网格与结构；手机可立即渲染它们。能看见 3D，不代表已经生成了可编辑的精细房间。</div></section>
+  <div id="metrics" class="metric-strip" aria-live="polite"></div>
+  <div class="lab-grid">
+    <aside class="panel"><h2>打开原始包</h2><div class="field"><label for="scan-select">选择一次扫描</label><select id="scan-select"><option value="office-1">Office.zip · 第一次</option><option value="office-2">Office 2.zip · 第二次</option></select></div><p id="archive-note"></p><h3>包内关键文件</h3><ul id="file-list" class="file-list"></ul><details><summary>看一段实际结构 JSON</summary><pre id="raw-json">读取中…</pre></details></aside>
+    <div><div class="display"><canvas id="raw-canvas" aria-label="原始扫描网格或深度点云，可拖动旋转、滚轮缩放"></canvas><div id="raw-status" class="display-status" role="status">读取扫描数据…</div><div class="display-tip">拖动旋转 · 滚轮缩放</div></div><div class="viewer-controls"><div class="button-row"><button id="mode-mesh" class="control" type="button" aria-pressed="false">原始三角网格</button><button id="mode-points" class="control" type="button" aria-pressed="true">顶点 / 深度点</button><button id="reset-view" class="control" type="button">复位视角</button></div><span id="viewer-caption" class="viewer-caption"></span></div></div>
+  </div>
+  <section class="section evidence-grid"><figure class="evidence"><img id="depth-rgb" alt="同一时刻的原始 RGB 帧"><figcaption id="rgb-caption">原始深度帧配套 RGB 图像</figcaption></figure><figure class="evidence"><img id="depth-heat" alt="同一时刻的深度数值伪彩色图"><figcaption id="depth-caption">按原始 Float16 深度值生成的伪彩色热图，仅用于读数</figcaption></figure></section>
+  <section class="section"><h2 class="section-heading">包内照片抽样</h2><div id="photo-gallery" class="photo-gallery"></div></section>
+  <section class="section callout warn"><strong>关于你在手机上看到的“高斯泼溅”</strong><p>这两份 ZIP 没有 .splat、.ksplat 或 .sog 文件。当前基线 App 源码列出的预览模式是 Photo、Coverage、Sessions、Clay、Mesh、RoomPlan；Photo 将照片纹理投到网格上，视觉上也可能很密。这里不把网格或点云冒充训练后的 3DGS。若你看的确是另一个 App 或版本，需要另看它实际导出的文件。</p></section>
+</main><footer class="shell footer">数据来源：本机 Office.zip 与 Office 2.zip；原始压缩包未被改写。<a href="分析.md">查看分析记录</a></footer>
+<script type="importmap">{"imports":{"three":"../shared/vendor/three.module.js"}}</script><script type="module" src="../shared/raw-page.js"></script>
+</body></html>

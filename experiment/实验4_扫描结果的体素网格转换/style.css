@@ -1,0 +1,24 @@
+.voxel-panel .field { margin-bottom: 13px; }
+.voxel-source-note { margin: 2px 0 18px; padding: 11px 12px; background: #e4eee9; border-left: 3px solid var(--teal); font-size: 13px !important; }
+.voxel-small { margin: -4px 0 14px; font-size: 12px !important; }
+.surface-cut { margin-top: 18px; }
+.surface-cut label { display: flex; justify-content: space-between; }
+.surface-cut input { width: 100%; min-height: 44px; accent-color: var(--teal); }
+.surface-cut .voxel-small { margin: 0; }
+.voxel-object-list button:disabled { cursor: wait; opacity: .55; }
+.voxel-object-list { display: grid; gap: 7px; max-height: 240px; overflow: auto; padding-right: 3px; }
+.voxel-object-list button { border: 1px solid #b4c5c0; background: #fff; padding: 10px 12px; color: var(--ink); text-align: left; min-height: 44px; display: flex; justify-content: space-between; gap: 10px; }
+.voxel-object-list button:hover, .voxel-object-list button[aria-pressed='true'] { border-color: var(--teal); background: #e6f2ed; }
+.voxel-object-list small { color: var(--muted); white-space: nowrap; }
+.voxel-detail { margin-top: 14px; border-top: 1px solid var(--line); padding-top: 13px; font-size: 13px; line-height: 1.65; color: var(--muted); }
+.voxel-detail strong { color: var(--ink); font-size: 15px; }
+.voxel-detail dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 13px; margin: 9px 0 0; }
+.voxel-detail dt { color: var(--muted); }
+.voxel-detail dd { margin: 0; color: var(--ink); text-align: right; font-variant-numeric: tabular-nums; }
+.voxel-detail dd { overflow-wrap: anywhere; }
+.voxel-legend { display: flex; flex-wrap: wrap; gap: 12px 22px; padding: 14px 0 0; font-size: 13px; color: var(--muted); }
+.voxel-legend span { display: inline-flex; align-items: center; gap: 8px; }
+.legend-swatch { width: 15px; height: 15px; display: inline-block; background: #68c9c0; border: 1px solid #0f746e; }
+.legend-swatch.inferred { background: #d9a165; border-color: #7c5239; }
+.legend-swatch.outline { background: transparent; border: 2px solid #fff5c3; box-shadow: 0 0 0 1px #667974; }
+@media (max-width: 1050px) { .voxel-panel { padding: 16px; } }

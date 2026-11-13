@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>实验2 · 扫描包怎样处理</title><link rel="stylesheet" href="../shared/style.css"></head>
+<body>
+<header class="site-header"><div class="shell header-inner"><a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true">⌖</span> Angrid 空间实验室</a><nav class="site-nav" aria-label="实验导航"><a href="../实验1_手机扫描包长什么样/index.html">手机扫描包</a><a href="index.html" aria-current="page">处理过程</a><a href="../实验3_最终查看网页/index.html">查看网页</a></nav></div></header>
+<main class="shell">
+  <section class="intro"><div><p class="sequence">实验 02 / 转换记录</p><h1>从扫描包到可编辑房间，究竟做了哪几步</h1><p class="lead">每一站标明输入、真实产物和目前缺口。前几步是确定性解析；精细家具、真实材质和照片逐机位校准，需要代理继续建模与人工检查。</p></div><div class="intro-note"><strong>不是一条“美化”滤镜</strong>扫描事实、推导几何和人工/代理建模结果，必须保留各自来源。</div></section>
+  <div class="field" style="max-width:360px"><label for="scan-select">跟随哪个扫描包</label><select id="scan-select"><option value="office-1">Office.zip · 第一次</option><option value="office-2">Office 2.zip · 第二次</option></select></div>
+  <div class="process-layout"><nav class="stage-nav" aria-label="处理阶段"><button type="button" data-step="0" aria-current="step"><b>01</b><span>解包与核验</span></button><button type="button" data-step="1"><b>02</b><span>RoomPlan 坐标转换</span></button><button type="button" data-step="2"><b>03</b><span>照片、深度与网格证据</span></button><button type="button" data-step="3"><b>04</b><span>生成可编辑初稿</span></button><button type="button" data-step="4"><b>05</b><span>对照校正与交付</span></button></nav><article class="panel stage-panel" aria-live="polite"><div class="stage-title"><h2 id="stage-title">读取中…</h2><span id="stage-tag"></span></div><p id="stage-lead" class="stage-lead"></p><div id="stage-body"></div><div class="stage-controls"><button id="prev-step" class="control" type="button">上一步</button><button id="next-step" class="control" type="button">下一步</button></div></article></div>
+  <section class="section callout"><strong>实验的边界</strong><p>我们已经从两个 ZIP 得到米制墙窗、家具边界和可旋转的初稿。照片贴图家具、跨会话对齐、真实光照以及同机位照片比较仍是后续工作；页面会明确显示“未完成”，不会把初稿叫成成品。</p></section>
+</main><footer class="shell footer">处理工具：仓库的 scan-to-threejs 转换脚本 + 本实验准备脚本。<a href="分析.md">查看分析与命令记录</a></footer>
+<script type="module" src="../shared/process-page.js"></script>
+</body></html>

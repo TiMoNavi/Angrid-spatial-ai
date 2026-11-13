@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="data:,">
+  <title>实验 6 · 平整房间与方块编辑</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="viewer-topbar">
+    <a class="brand" href="../index.html"><span class="brand-mark" aria-hidden="true">⌂</span> 体素空间实验 <span class="experiment-tag">实验 6</span></a>
+    <output id="viewer-status" aria-live="polite">正在建立房间…</output>
+    <div class="history-controls"><button id="undo" title="撤销 ⌘/Ctrl Z" disabled>↶ <span>撤销</span></button><button id="redo" title="重做 ⌘/Ctrl Shift Z" disabled>↷ <span>重做</span></button></div>
+    <button id="controls-toggle" aria-expanded="false" aria-controls="sidebar">控制台</button>
+  </header>
+  <aside id="sidebar" aria-label="房间与编辑控制">
+    <section class="control-section">
+      <h2>离线房间 <span class="section-note">独立扫描会话</span></h2>
+      <label class="sr-only" for="room-select">选择扫描</label>
+      <select id="room-select"><option value="office-2">Office 2 · 第二次扫描</option><option value="office-1">Office · 第一次扫描</option><option value="sample">公开示例 · 方形工作间</option></select>
+      <p id="source-note" class="help">RoomPlan 平面、开口与语义范围。家具为粗框，桌面高度为推断。</p>
+    </section>
+    <section class="control-section">
+      <h2>查看</h2>
+      <div class="buttons mode-grid" aria-label="查看方式"><button data-viewmode="scene" class="active" aria-pressed="true">3D 房间</button><button data-viewmode="plan" aria-pressed="false">平面布局</button></div>
+      <div class="camera-grid" aria-label="相机"><button data-camera="home">复位</button><button data-camera="top">俯视</button><button data-camera="front">正视</button><button data-camera="side">侧视</button></div>
+      <div class="buttons segmented" aria-label="来源"><button data-source="model" class="active" aria-pressed="true">规则结构</button><button data-source="overlay" aria-pressed="false">扫描叠加</button></div>
+      <label class="check-row"><input id="show-grid" type="checkbox" checked>显示格线</label>
+    </section>
+    <section class="control-section">
+      <h2>编辑 <span class="section-note">先选模式，再操作</span></h2>
+      <div class="buttons tool-grid" aria-label="编辑工具">
+        <button data-tool="select" class="active" aria-pressed="true" title="选择 V">选择 <kbd>V</kbd></button>
+        <button data-tool="create" aria-pressed="false" title="创建 B">画方块 <kbd>B</kbd></button>
+        <button data-tool="translate" aria-pressed="false" title="移动 G">移动 <kbd>G</kbd></button>
+        <button data-tool="scale" aria-pressed="false" title="缩放 S">缩放 <kbd>S</kbd></button>
+        <button data-tool="rotate" aria-pressed="false" title="旋转 R">旋转 <kbd>R</kbd></button>
+      </div>
+      <label class="field-label" for="anchor-select">创建承载面</label><select id="anchor-select"></select>
+      <div class="field-pair"><label for="grid-step">格子边长</label><select id="grid-step"><option value="0.2">20 cm</option><option value="0.1">10 cm</option><option value="0.05">5 cm</option><option value="0.025">2.5 cm</option></select></div>
+      <label class="check-row"><input id="snap" type="checkbox" checked>移动时吸附格点</label>
+      <p class="help">画矩形，再沿承载面法线拉伸。格子变细只改变划分；不会从 PLY 长出凹凸。</p>
+    </section>
+    <section class="control-section objects-section">
+      <h2>物体 <output id="object-count" class="section-note">0 件</output></h2>
+      <div id="object-list" class="object-list" aria-label="物体列表"></div>
+      <button id="clear-furniture" class="quiet-button">清空可编辑家具…</button>
+    </section>
+    <section class="control-section save-section">
+      <h2>保存与继续 <span id="save-status" class="section-note">未改动</span></h2>
+      <div class="buttons mode-grid"><button id="save-scene">保存到本机</button><button id="export-scene">导出场景 JSON</button><button id="import-scene">导入场景</button><button id="export-plan">导出平面 SVG</button></div>
+      <input id="import-file" type="file" accept="application/json,.json" hidden>
+      <p class="help">只保存派生编辑状态。原扫描包保留在本机。<a href="README.md">操作与实验记录</a></p>
+    </section>
+  </aside>
+  <main id="viewport" aria-label="房间编辑视口">
+    <canvas id="scene" aria-label="房间三维编辑画布，拖动旋转，滚轮缩放，选择画方块后框出矩形并拉伸" tabindex="0"></canvas>
+    <section id="plan" hidden aria-label="平面布局"><header><h1>平面布局 <button id="fit-plan">适配房间</button></h1><p id="plan-summary"></p><p>与 3D 共用同一份米制场景。创建工具画占地，右侧设置高度；中键拖动平移，双击适配。</p></header><svg id="plan-svg" role="img" aria-label="可选择和创建方块的房间平面图"></svg><p class="plan-note">蓝线为窗 · 白色缺口为门／开口。粗家具范围和桌面为 RoomPlan 推断；不作为施工图或净空保证。</p></section>
+    <div class="viewport-heading"><span id="view-label">规则语义房间</span><span id="grid-label">20 cm 格</span></div>
+    <div id="selection-label" hidden></div>
+    <div id="loader"><div class="loading-dot"></div><p>读取离线结构…</p></div>
+    <div id="empty-error" hidden><h1>没有找到本机扫描</h1><p>在 experiment 目录先运行 tools/prepare_data.py，或选择公开示例体验编辑。</p><button id="use-sample">打开公开示例</button></div>
+    <output id="interaction-hint" class="interaction-hint">拖动旋转 · 滚轮缩放 · 点击粗框选择</output>
+    <div class="viewport-legend"><span><i class="swatch measured"></i>语义粗框</span><span><i class="swatch user"></i>用户方块</span><span><i class="swatch evidence"></i>扫描证据</span></div>
+  </main>
+  <aside id="inspector" aria-label="物体属性">
+    <section id="inspector-empty"><h2>搭一块，再慢慢细化</h2><p>先选地面、墙面或桌面。用“画方块”画出长方形，再拉伸成一件物体。</p><div class="workflow"><span>画占地</span><span>拉伸</span><span>命名</span></div><button id="start-create" class="primary">开始画方块</button><p class="help">AI 局部建模与批量细化在后续独立实验接入。本页先验证摆放和编辑。</p></section>
+    <form id="object-form" hidden>
+      <h2>当前物体 <span id="object-source" class="section-note"></span></h2>
+      <label class="field-label" for="object-name">名称</label><input id="object-name" maxlength="100" required>
+      <label class="field-label" for="object-category">语义标签</label><input id="object-category" maxlength="64" required>
+      <label class="field-label">尺寸 / 米</label><div class="triplet"><label>宽 X<input id="size-x" type="number" min="0.025" max="100" step="any" required></label><label>高 Y<input id="size-y" type="number" min="0.025" max="100" step="any" required></label><label>深 Z<input id="size-z" type="number" min="0.025" max="100" step="any" required></label></div>
+      <label class="field-label">中心位置 / 米</label><div class="triplet"><label>X<input id="center-x" type="number" step="any" required></label><label>Y<input id="center-y" type="number" step="any" required></label><label>Z<input id="center-z" type="number" step="any" required></label></div>
+      <label class="field-label" for="rotation-y">水平旋转 / 度</label><input id="rotation-y" type="number" step="any" required>
+      <p id="object-anchor" class="help"></p><p id="object-warning" class="notice" hidden></p>
+      <label class="check-row"><input id="object-locked" type="checkbox">锁定物体</label>
+      <button id="apply-properties" class="primary" type="submit">应用属性</button>
+      <div class="buttons mode-grid action-row"><button id="duplicate-object" type="button">复制一件</button><button id="delete-object" type="button" class="danger">删除</button></div>
+      <p class="help">可用变换手柄直接移动、缩放和水平旋转。每次操作均可撤销。</p>
+    </form>
+    <form id="draft-form" hidden>
+      <h2>新方块 <span id="draft-phase" class="section-note">画矩形</span></h2>
+      <p id="draft-description" class="help">在承载面拖出长方形。</p>
+      <label class="field-label">格数 a × b × c</label><div class="triplet"><label>a<input id="draft-a" type="number" min="1" max="200" value="1" required></label><label>b<input id="draft-b" type="number" min="1" max="200" value="1" required></label><label>c<input id="draft-c" type="number" min="1" max="200" value="1" required></label></div>
+      <output id="draft-dimensions" class="dimension-readout"></output>
+      <label class="field-label" for="draft-name">给它命名</label><input id="draft-name" maxlength="100" value="新方块" required>
+      <label class="field-label" for="draft-category">语义标签</label><input id="draft-category" maxlength="64" value="box" required>
+      <p id="draft-warning" class="notice" hidden></p><button id="confirm-create" class="primary" type="submit">创建这件物体</button><button id="cancel-create" type="button" class="quiet-button">取消 / Esc</button>
+    </form>
+    <div class="inspector-footer"><span class="coordinate-mark">Y ↑</span><p>XZ 地面 · +Y 向上 · 单位米<br>扫描用于核对，平整结构用于编辑</p></div>
+  </aside>
+  <dialog id="clear-dialog"><form method="dialog"><h2>清空可编辑家具</h2><p id="clear-summary"></p><p class="help">保留墙、地面、门窗、锁定物体及其必要承载物。整个操作可以撤销。</p><div class="dialog-actions"><button value="cancel">取消</button><button value="clear" class="danger">清空这些物体</button></div></form></dialog>
+  <script type="importmap">{"imports":{"three":"../shared/vendor/three.module.js"}}</script>
+  <script type="module" src="main.js"></script>
+</body>
+</html>

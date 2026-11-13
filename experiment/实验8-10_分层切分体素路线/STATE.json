@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "updatedAt": "2026-11-14",
-  "status": "three_experiments_accepted_pending_push",
-  "nextAction": "Audit and push codex/voxel-editor-v1 without force, verify the remote checkpoint, then commit the upload receipt. Future E11–13 work is queued in NEXT_TASKS.md and is not started by this run.",
+  "status": "completed",
+  "nextAction": "The E8–10 run is complete. Follow NEXT_TASKS.md for separate future E11 rectangle extrusion/history, E12 bounded AI proposals and E13 semantic refinement experiments; these are queued, not implemented in E10.",
   "scope": {
     "scanId": "office-2",
     "office1Policy": "Read-only depth/TSDF fallback. No original LiDAR mesh is fabricated.",
@@ -42,8 +42,9 @@
     "experiment8Commit": "4298e9ac26ff459c3c6f3ec89e5d25f9904bbc6a",
     "experiment9Commit": "c925290ca96b1db8f8de9d2f65b0730cb2e3fbbd",
     "experiment10Commit": "ff4631b7f55a6f2369161496c9f3935a2f69232d",
-    "pushCommit": null,
-    "pushedAt": null
+    "pushCommit": "0467f0fecc3be9a96f23a47475f8a18b173176fc",
+    "pushedAt": "2026-11-14T05:49:01+08:00",
+    "pushCommitMeaning": "Verified remote implementation and acceptance checkpoint. This upload-receipt-only commit may follow it; obtain the current tip with git ls-remote."
   },
   "review": {
     "status": "approved",
@@ -191,7 +192,7 @@
       ]
     },
     "E10-04": {
-      "status": "in_progress",
+      "status": "done",
       "dependsOn": [
         "E10-03"
       ],
@@ -200,7 +201,8 @@
         "Microsoft Edge: 10 stages passed, 0 pageerrors, 0 failed scan asset requests",
         "svelte-check: 0 errors/0 warnings; Vitest: 35 passed; voxel-core: 6 passed; production build succeeded",
         "Native furniture picker/insertion and Undo verified independently from voxel design",
-        "304 staged source/documentation files passed privacy/size/secret/whitespace audit; upload receipt pending"
+        "304 E10 files and all 351 newly pushed source/documentation paths passed path/privacy/size/secret/whitespace audits; protected working-tree paths unchanged",
+        "Non-force push succeeded; git ls-remote confirmed 0467f0fecc3be9a96f23a47475f8a18b173176fc on codex/voxel-editor-v1 at 2026-11-14T05:49:01+08:00"
       ]
     }
   },
@@ -239,6 +241,11 @@
       "at": "2026-11-14",
       "action": "experiment10_accepted",
       "detail": "E10 committed as ff4631b7f55a6f2369161496c9f3935a2f69232d; Edge integration, independent parent checks, unit tests, type check and production build passed. No private assets or reference changes staged. Push gate now active."
+    },
+    {
+      "at": "2026-11-14T05:49:01+08:00",
+      "action": "github_upload_verified",
+      "detail": "Non-force push to origin/codex/voxel-editor-v1 succeeded and remote checkpoint 0467f0fecc3be9a96f23a47475f8a18b173176fc was verified with git ls-remote. This receipt is committed afterward; private inputs, dependencies, reference and unrelated changes remain excluded."
     }
   ]
 }

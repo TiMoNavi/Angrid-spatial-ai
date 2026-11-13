@@ -42,4 +42,7 @@
 
 ## GitHub 回执
 
-三个实验的独立提交已完成；推送与远端验证尚待最后执行，完成后记录到 `STATE.json`，不提前声明已上传。
+- 仓库为 `TiMoNavi/Angrid-spatial-ai`，分支为 `codex/voxel-editor-v1`，使用普通非强制推送。
+- 在 `2026-11-14T05:49:01+08:00` 推送后执行 `git ls-remote`，确认远端实现与验收检查点为 `0467f0fecc3be9a96f23a47475f8a18b173176fc`，包括实验 8 `4298e9a`、实验 9 `c925290`、实验 10 `ff4631b` 和后续任务表。
+- 本回执单独提交并再次推送；`STATE.json.git.pushCommit` 明确记录上述已核对的实现检查点，不冒充包含自身的最终哈希。分支最新 tip 可用 `git ls-remote --heads origin codex/voxel-editor-v1` 查询。
+- 最终上传范围审计为 351 个新增或修改的源代码/文档路径，未上传私人扫描、照片、PLY、模型、依赖和构建目录，也未夹带原有 reference/docs 未提交改动。

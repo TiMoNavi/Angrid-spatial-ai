@@ -43,4 +43,4 @@
 
 仅实验 11 目录属于本次提交候选。experiment/.private/、node_modules/、.svelte-kit/、build/ 均被 Git 忽略；本机 reference/threeui-cathode-studio-美术风格参考/cathode-studio.html 只作本地视觉参考，不进入公共提交。实验 11 保留上游许可证和基线清单，不修改原始参考项目。
 
-主代理暂存的 307 个文件全部位于实验 11，git diff --cached --check 通过；暂存项没有范围外路径、私人扫描、照片、生成产物或 ThreeUI 凭据。提交前审计通过，待主代理推送。
+主代理暂存的 307 个文件全部位于实验 11，git diff --cached --check 通过；暂存项没有范围外路径、私人扫描、照片、生成产物或 ThreeUI 凭据。实现提交 d7952c7 已于 2026-11-14 推送至 origin/codex/voxel-editor-v1，可作为实验 11 回档点。

@@ -97,7 +97,9 @@ AI 工作包默认在 `ai-job/`，路径由命令结果的 `aiWorkPackage.jobDir
 - `--adopt-existing` 用于核验并接管缺少本流水线校验点的旧产物；它不是忽略哈希错误的开关。部分失败产物需先检查，保留旧运行后改用新 ID。
 - 更换模型计划或代码版本时推荐新 scan ID 和新运行目录。模型计划必须匹配该 ID、原 PLY、变换和格原点；不要直接改一个 ID 来规避验证。
 - 整个实验目录包含运行所需的 Python 源码、skill 和原版说明副本，运行不导入其他实验代码。搬到其他父目录后，私有输出仍在实验文件夹同级的 `.private/`。单独搬迁时也应为该目录加 Git 忽略规则。
-- 当前不生成 TSDF 融合、深度显示点云、高斯泼溅；保留原始深度/照片不代表这些重建已经完成。杂物分类默认不执行。相关记录会明确 `available=false`。
+- 有深度帧时生成房间局部深度投影点；安装 Open3D 时调用本实验附带的原版脚本生成 TSDF 网格。两层在 ZIP、源 PLY、坐标变换和产物哈希核验后才标为可用。高斯泼溅不生成，杂物分类默认不执行。
+- 深度投影和输入提取脚本是实验 4 的逐字节副本，分别位于 `pipeline/legacy_e4/prepare_voxel_evidence.py`（SHA256 `95f5109bf35f581187d033403f11a8fab01f1b8595011be2c71648dc9bd3eef9`）和 `pipeline/legacy_e4/prepare_reference.py`（SHA256 `f10d253faebd55bc5fb94f3499b7722aa2664e6d3387cf70712b9d2a7897d568`）。TSDF 使用 `skill-baseline/scan-to-threejs/scripts/reconstruct_bundle.py` 原版副本（SHA256 `fca09ed718b2aed3ab22a2977ce3a9ea74088141786a3847a9b5e4bcc030f69a`）。运行不读取实验 4 或 live reference；私有输出仍在 `experiment/.private/`。运行环境安装 `requirements.txt`，并确保 Open3D 可用；缺失 Open3D 时不伪报 TSDF。
+- 可用体素层的 `gridCellCounts` 给出 20/10/5/2.5 cm 各档源格数，供编辑器在图层未加载时使用。显示抽样数量不改变源格或格长。
 
 ## 检查与来源
 

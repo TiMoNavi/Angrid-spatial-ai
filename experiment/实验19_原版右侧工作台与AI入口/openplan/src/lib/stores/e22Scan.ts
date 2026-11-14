@@ -1,5 +1,7 @@
 import { browser } from '$app/environment';
 import { get, writable } from 'svelte/store';
+import { e22DeclaredVoxelCount, e22DisplayedVoxelCount } from '$lib/utils/e22VoxelDisplay';
+export { E22_MAX_RENDER_CELLS, e22DisplayedVoxelCount } from '$lib/utils/e22VoxelDisplay';
 
 /** Local link between an OpenPlan project and an E22 room-local scan. */
 export interface E22ScanLink {
@@ -26,6 +28,7 @@ export interface E22Layer {
   transformHash: string;
   renderOrder: number;
   visual: { visible: boolean; opacity: number; color: string; wireframe: boolean };
+  gridCellCounts?: Record<string, number>;
 }
 
 export interface E22Manifest {
@@ -51,7 +54,6 @@ export function e22LayerClippedByDefault(kind: string): boolean {
 
 export const activeE22Scan = writable<E22ScanLink | null>(null);
 export const e22Manifest = writable<E22Manifest | null>(null);
-export const e22ViewMode = writable<'scan-evidence' | 'model-voxel'>('scan-evidence');
 export const e22GridStep = writable<0.2 | 0.1 | 0.05 | 0.025>(0.2);
 /** Only the native OpenPlan wall bodies in the 3D editor; E22 scan walls remain independent. */
 export const e22ShowEditorWalls = writable(false);
@@ -59,6 +61,9 @@ export const e22ShowEditorWalls = writable(false);
 export const e22ClipEnabled = writable(true);
 export const e22ClipHeightM = writable(1.5);
 export const e22LayerSettings = writable<E22LayerSettings>({});
+/** Display-only voxel budgets. The source grids and their saved resolution never change. */
+export const e22VoxelTotals = writable<Record<string, number>>({});
+export const e22VoxelDrawLimits = writable<Record<string, number>>({});
 export const e22LoadState = writable<{ loading: boolean; error: string | null }>({ loading: false, error: null });
 export const e22LayerErrors = writable<Record<string, string>>({});
 
@@ -93,9 +98,10 @@ export function attachE22Scan(link: E22ScanLink): void {
   requestEpoch++;
   e22Manifest.set(null);
   e22LayerSettings.set({});
+  e22VoxelTotals.set({});
+  e22VoxelDrawLimits.set({});
   e22LayerErrors.set({});
   activeE22Scan.set(link);
-  e22ViewMode.set('scan-evidence');
   e22GridStep.set(0.2);
   e22ShowEditorWalls.set(false);
   e22ClipEnabled.set(true);
@@ -110,8 +116,9 @@ export function restoreE22Scan(projectId: string | null): void {
   requestEpoch++;
   e22Manifest.set(null);
   e22LayerSettings.set({});
+  e22VoxelTotals.set({});
+  e22VoxelDrawLimits.set({});
   e22LayerErrors.set({});
-  e22ViewMode.set('scan-evidence');
   e22GridStep.set(0.2);
   e22ShowEditorWalls.set(false);
   e22ClipEnabled.set(true);
@@ -126,20 +133,67 @@ function manifestUrl(link: E22ScanLink, mode: E22Manifest['mode']): string {
   return link.manifestUrl.slice(0, slash + 1) + 'layer-manifest.' + mode + '.json';
 }
 
-export async function setE22ViewMode(mode: E22Manifest['mode']): Promise<void> {
-  if (mode !== 'scan-evidence' && mode !== 'model-voxel') return;
-  e22ViewMode.set(mode);
-  await refreshE22Manifest();
+const MODEL_LAYERS = [
+  { id: 'reconstructed-model', label: 'AI 重建命名实体 GLB', kind: 'named-glb', group: 'model' },
+  { id: 'model-voxel-grid', label: 'AI 家具脑补修正体素', kind: 'instance-voxel-grid', group: 'model' },
+  { id: 'model-evidence-overlay', label: '模型与扫描证据回绑', kind: 'voxel-evidence-overlay', group: 'review' },
+] as const;
+
+function verifyManifest(value: E22Manifest, link: E22ScanLink, mode: E22Manifest['mode']): void {
+  if (value.schemaVersion !== 1 || value.kind !== 'dual-mode-scan-assets' ||
+      value.scanId !== link.scanId || value.roomIndex !== link.roomIndex ||
+      value.frame !== 'room-local-m' || value.units !== 'm' || value.mode !== mode ||
+      !Array.isArray(value.layers) || typeof value.transformHash !== 'string' ||
+      (link.transformHash && value.transformHash !== link.transformHash)) {
+    throw new Error('E22 manifest does not match the imported scan and room coordinates.');
+  }
+  for (const layer of value.layers) {
+    if (typeof layer.id !== 'string' || typeof layer.kind !== 'string' ||
+        typeof layer.available !== 'boolean' || typeof layer.renderable !== 'boolean' ||
+        layer.frame !== value.frame || layer.transformHash !== value.transformHash ||
+        !layer.visual || !Number.isFinite(layer.visual.opacity)) {
+      throw new Error('E22 layer manifest contains an invalid layer.');
+    }
+  }
+}
+
+function modelPlaceholder(base: E22Manifest, row: typeof MODEL_LAYERS[number], reason: string): E22Layer {
+  return {
+    id: row.id, label: row.label, kind: row.kind, group: row.group, provenance: 'model-inferred',
+    available: false, renderable: true, reason, geometryUri: null, sha256: null,
+    frame: base.frame, transformHash: base.transformHash, renderOrder: 80,
+    visual: { visible: false, opacity: row.kind === 'named-glb' ? 1 : .1, color: '#d9b78a', wireframe: false },
+  };
+}
+
+async function modelLayers(link: E22ScanLink, base: E22Manifest): Promise<E22Layer[]> {
+  let reason = '尚未生成 AI 命名模型；导入扫描不会自动冒充 AI 建模。';
+  try {
+    const response = await fetch(manifestUrl(link, 'model-voxel'), { cache: 'no-store' });
+    if (response.ok) {
+      const model = await response.json() as E22Manifest;
+      verifyManifest(model, link, 'model-voxel');
+      if (model.transformHash !== base.transformHash) throw new Error('模型与扫描坐标不匹配');
+      return MODEL_LAYERS.map(row => {
+        const found = model.layers.find(layer => layer.id === row.id && layer.kind === row.kind);
+        return found ?? modelPlaceholder(base, row, '模型清单缺少该图层。');
+      });
+    }
+    if (response.status !== 404) reason = '模型图层目录读取失败（HTTP ' + response.status + '）。';
+  } catch (error) {
+    reason = error instanceof Error ? error.message : '模型图层目录读取失败。';
+  }
+  return MODEL_LAYERS.map(row => modelPlaceholder(base, row, reason));
 }
 
 export async function refreshE22Manifest(): Promise<void> {
   const link = get(activeE22Scan);
-  const mode = get(e22ViewMode);
   const epoch = ++requestEpoch;
-  // A mode is an asset contract, not merely a selected tab: never show another
-  // mode's old layer list while the new manifest is missing or loading.
+  // Scan evidence remains the base; optional model layers join the same scene.
   e22Manifest.set(null);
   e22LayerSettings.set({});
+  e22VoxelTotals.set({});
+  e22VoxelDrawLimits.set({});
   e22LayerErrors.set({});
   if (!link || !browser) {
     e22LoadState.set({ loading: false, error: null });
@@ -147,36 +201,23 @@ export async function refreshE22Manifest(): Promise<void> {
   }
   e22LoadState.set({ loading: true, error: null });
   try {
-    const response = await fetch(manifestUrl(link, mode), { cache: 'no-store' });
-    if (!response.ok) throw new Error(response.status === 404 ? 'No E22 assets for this mode.' : 'Could not load E22 scan layers (' + response.status + ').');
+    const response = await fetch(manifestUrl(link, 'scan-evidence'), { cache: 'no-store' });
+    if (!response.ok) throw new Error(response.status === 404 ? 'No E22 scan assets found.' : 'Could not load E22 scan layers (' + response.status + ').');
     const value = await response.json() as E22Manifest;
-    if (value.schemaVersion !== 1 || value.kind !== 'dual-mode-scan-assets' ||
-        value.scanId !== link.scanId || value.roomIndex !== link.roomIndex ||
-        value.frame !== 'room-local-m' || value.units !== 'm' || value.mode !== mode ||
-        !Array.isArray(value.layers) || typeof value.transformHash !== 'string' ||
-        (link.transformHash && value.transformHash !== link.transformHash)) {
-      throw new Error('E22 manifest does not match the imported scan and room coordinates.');
-    }
+    verifyManifest(value, link, 'scan-evidence');
+    const merged = { ...value, layers: [...value.layers, ...await modelLayers(link, value)] };
     if (epoch !== requestEpoch) return;
     const settings: E22LayerSettings = {};
-    for (const layer of value.layers) {
-      if (typeof layer.id !== 'string' || typeof layer.kind !== 'string' ||
-          typeof layer.available !== 'boolean' || typeof layer.renderable !== 'boolean' ||
-          layer.frame !== value.frame || layer.transformHash !== value.transformHash ||
-          !layer.visual || !Number.isFinite(layer.visual.opacity)) {
-        throw new Error('E22 layer manifest contains an invalid layer.');
-      }
+    for (const layer of merged.layers) {
       // Start from legible room geometry. Dense raw PLY remains an opt-in evidence layer;
       // a real TSDF is useful by default when the pipeline has actually produced it.
       const visible = layer.available && layer.renderable &&
-        (mode === 'scan-evidence'
-          ? ['roomplan-structure', 'clean-structure-grid', 'tsdf-fused-mesh'].includes(layer.id)
-          : ['clean-structure-grid', 'model-voxel-grid'].includes(layer.id));
+        ['roomplan-structure', 'clean-structure-grid', 'tsdf-fused-mesh'].includes(layer.id);
       settings[layer.id] = { visible, opacity: Math.max(0, Math.min(1, layer.visual.opacity)), clipped: e22LayerClippedByDefault(layer.kind) };
     }
     e22LayerSettings.set(settings);
     e22LayerErrors.set({});
-    e22Manifest.set(value);
+    e22Manifest.set(merged);
     e22LoadState.set({ loading: false, error: null });
   } catch (error) {
     if (epoch !== requestEpoch) return;
@@ -209,4 +250,11 @@ export function setE22LayerClipped(id: string, clipped: boolean): void {
 export function setE22ClipHeightM(heightM: number): void {
   if (!Number.isFinite(heightM)) return;
   e22ClipHeightM.set(Math.max(0.2, Math.min(5, heightM)));
+}
+
+export function setE22VoxelDrawLimit(id: string, count: number): void {
+  const layer = get(e22Manifest)?.layers.find(row => row.id === id);
+  const total = get(e22VoxelTotals)[id] ?? (layer && e22DeclaredVoxelCount(layer.kind, layer.gridCellCounts, get(e22GridStep)));
+  if (!layer?.available || !layer.renderable || typeof total !== 'number' || !Number.isSafeInteger(total) || total < 0 || !Number.isFinite(count)) return;
+  e22VoxelDrawLimits.update(all => ({ ...all, [id]: e22DisplayedVoxelCount(total, count) }));
 }

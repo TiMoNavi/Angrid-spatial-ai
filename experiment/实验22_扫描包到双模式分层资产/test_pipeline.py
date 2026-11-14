@@ -11,6 +11,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent / 'pipeline'))
 from geometry_v1 import transform_hash
 from floor_plan import build_model_candidates, render_svg
 from package_layers import package, sha, verify_manifest
+from derived_evidence import expected as expected_evidence
 
 
 MATRIX = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]
@@ -77,6 +78,62 @@ def plan_fixture(scan, source):
 
 
 class PipelineTests(unittest.TestCase):
+    def test_known_v1_wrapper_checkpoint_migrates_without_loosening_inputs(self):
+        current = {'source': 'same', 'code': 'same'}
+        legacy = {**current, 'wrapper': pipeline.LEGACY_V1_WRAPPER_SHA}
+        self.assertTrue(pipeline.checkpoint_inputs_migrate(legacy, current))
+        self.assertFalse(pipeline.checkpoint_inputs_migrate(current, current))
+        self.assertIsNone(pipeline.checkpoint_inputs_migrate({**legacy, 'code': 'changed'}, current))
+        self.assertIsNone(pipeline.checkpoint_inputs_migrate({**legacy, 'wrapper': 'f' * 64}, current))
+
+    def test_copied_evidence_migrates_only_the_known_generator_hash(self):
+        current = {'code': 'new', 'upstreamDepth': 'same', 'archive': 'same'}
+        legacy = {**current, 'code': pipeline.LEGACY_EXTERNAL_DERIVED_SHA}
+        self.assertTrue(pipeline.checkpoint_derived_inputs_migrate(legacy, current))
+        self.assertIsNone(pipeline.checkpoint_derived_inputs_migrate(
+            {**legacy, 'upstreamDepth': 'changed'}, current))
+        self.assertIsNone(pipeline.checkpoint_derived_inputs_migrate(
+            {**legacy, 'code': 'unknown'}, current))
+
+    def test_only_identity_bound_depth_and_tsdf_are_published(self):
+        with tempfile.TemporaryDirectory() as directory:
+            scan, _ = scan_fixture(Path(directory))
+            imported = json.loads((scan / 'import-manifest.json').read_text())
+            depth = scan / 'depth-evidence'
+            depth.mkdir()
+            point_ply = depth / 'full-depth-surface-025.ply'
+            point_ply.write_bytes(b'ply\nformat binary_little_endian 1.0\nelement vertex 2\nend_header\n' + b'0' * 30)
+            report = put(scan, 'depth-evidence/full-depth-surface-report.json', {
+                'scanId': scan.name, 'depthFramesProcessed': 0, 'surfaceCells': 2,
+                'baseVoxelStepM': 0.025})
+            put(scan, 'depth-evidence/asset-identity.json', {
+                **expected_evidence(scan, imported), 'kind': 'depth',
+                'geometryUri': 'depth-evidence/full-depth-surface-025.ply',
+                'geometrySha256': sha(point_ply), 'reportSha256': sha(report)})
+            fusion = scan / 'reference-depth'
+            fusion.mkdir()
+            mesh = fusion / 'scan_room.ply'
+            mesh.write_bytes(b'ply\nformat binary_little_endian 1.0\nelement vertex 3\nelement face 1\nend_header\n' + b'0' * 60)
+            glb = fusion / 'scan_room.glb'
+            glb.write_bytes(b'glTF' + b'0' * 32)
+            config = put(scan, 'reference-depth/run-config.json', {
+                'outputCoordinates': 'room-local-m',
+                'sourceScriptSha256': sha(pipeline.REFERENCE_TSDF)})
+            put(scan, 'reference-depth/asset-identity.json', {
+                **expected_evidence(scan, imported), 'kind': 'fusion',
+                'geometryUri': 'reference-depth/scan_room.ply',
+                'geometrySha256': sha(mesh), 'glbSha256': sha(glb),
+                'configSha256': sha(config), 'vertices': 3, 'faces': 1})
+            manifest_path = package(scan, 'scan-evidence', pipeline.LEDGER_DIR,
+                                    pipeline.MODEL_DIR, pipeline.EVIDENCE_DIR)
+            rows = {row['id']: row for row in verify_manifest(scan, manifest_path)['layers']}
+            for identifier in ('depth-projected-points', 'tsdf-fused-mesh'):
+                self.assertTrue(rows[identifier]['available'])
+                self.assertEqual(rows[identifier]['sha256'], sha(scan / rows[identifier]['geometryUri']))
+            point_ply.write_bytes(point_ply.read_bytes() + b'tampered')
+            with self.assertRaisesRegex(ValueError, 'hash mismatch|hash differs'):
+                verify_manifest(scan, manifest_path)
+
     def test_all_processing_paths_are_local_copies(self):
         for path in (pipeline.IMPORTER, pipeline.CLASSIFIER, pipeline.VIEW,
                      pipeline.INSTANCES, pipeline.BUILDER, pipeline.BINDER):

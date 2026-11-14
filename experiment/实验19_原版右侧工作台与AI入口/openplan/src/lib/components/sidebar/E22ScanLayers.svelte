@@ -1,31 +1,32 @@
 <script lang="ts">
+  let { modelOnly = false }: { modelOnly?: boolean } = $props();
   import { activeE22Scan, e22ClipEnabled, e22ClipHeightM, e22GridStep, e22LayerErrors, e22LayerSettings, e22LoadState,
-    e22Manifest, e22ShowEditorWalls, e22ViewMode, setE22ClipHeightM, setE22LayerClipped,
-    setE22LayerOpacity, setE22LayerVisible, setE22ViewMode } from '$lib/stores/e22Scan';
-  import { E22_RENDERABLE_KINDS } from '$lib/services/e22LayerLoader';
+    e22Manifest, e22ShowEditorWalls, e22VoxelDrawLimits, e22VoxelTotals,
+    E22_MAX_RENDER_CELLS, e22DisplayedVoxelCount, setE22ClipHeightM, setE22LayerClipped, setE22VoxelDrawLimit,
+    setE22LayerOpacity, setE22LayerVisible } from '$lib/stores/e22Scan';
+  import { E22_RENDERABLE_KINDS, E22_VOXEL_GRID_KINDS } from '$lib/services/e22LayerLoader';
+  import { e22DeclaredVoxelCount } from '$lib/utils/e22VoxelDisplay';
   import { groupE22RenderableLayers } from '$lib/utils/e22LayerGroups';
 
   const steps = [0.2, 0.1, 0.05, 0.025] as const;
   let showData = $state(false);
   const supported = (kind: string) => E22_RENDERABLE_KINDS.has(kind);
-  const groups = $derived($e22Manifest ? groupE22RenderableLayers($e22Manifest.layers, $e22ViewMode) : []);
+  const groups = $derived($e22Manifest ? groupE22RenderableLayers($e22Manifest.layers)
+    .filter(group => modelOnly ? group.id === 'model' : group.id !== 'model') : []);
 </script>
 
 {#if $activeE22Scan}
-  <section class="scan-layers" aria-label="E22 scan layers">
+  <section class="scan-layers" class:models-only={modelOnly} aria-label={modelOnly ? 'E22 3D model layers' : 'E22 scan layers'}>
+    {#if !modelOnly}
     <div class="scan-head">
       <strong>扫描资产 · {$activeE22Scan.scanId}</strong>
       <span>房间 {$activeE22Scan.roomIndex} · 米制对齐</span>
-    </div>
-    <div class="scan-modes" role="group" aria-label="扫描显示预设">
-      <button type="button" class:active={$e22ViewMode === 'scan-evidence'} aria-pressed={$e22ViewMode === 'scan-evidence'} onclick={() => void setE22ViewMode('scan-evidence')}>扫描证据</button>
-      <button type="button" class:active={$e22ViewMode === 'model-voxel'} aria-pressed={$e22ViewMode === 'model-voxel'} onclick={() => void setE22ViewMode('model-voxel')}>模型体素</button>
     </div>
     <label class="scan-editor-walls"><input type="checkbox" checked={$e22ShowEditorWalls}
       onchange={(event) => e22ShowEditorWalls.set(event.currentTarget.checked)} />显示编辑器墙体（仅 3D）</label>
     <label class="scan-grain">扫描格显示宽度
       <select value={$e22GridStep} onchange={(event) => e22GridStep.set(Number(event.currentTarget.value) as typeof steps[number])}>
-        {#each steps as step}<option value={step}>{Math.round(step * 100)} cm</option>{/each}
+        {#each steps as step}<option value={step}>{step * 100} cm</option>{/each}
       </select>
     </label>
     <div class="scan-cut">
@@ -38,16 +39,21 @@
         <span>{$e22ClipHeightM.toFixed(1)} m</span>
       </label>
     </div>
-    <p class="scan-hint">一次优先查看一个高密度表面层；可手动叠加对照。扫描格宽只影响显示，不提高扫描精度。模型体素格宽由生成资产固定。方块面按下方不透明度显示，线框会增强以便看清格子。</p>
+    <p class="scan-hint">格长决定扫描格颗粒度；各层“显示格数”只控制抽显数量，不改原资产或测量精度。模型体素的格长由生成资产固定。</p>
+    {/if}
     {#if $e22LoadState.loading}<p class="scan-status" role="status">正在读取图层目录…</p>{/if}
     {#if $e22LoadState.error}<p class="scan-error" role="alert">{$e22LoadState.error}</p>{/if}
     {#if $e22Manifest}
       {#each groups as group (group.id)}
-      <details class="scan-group" open={$e22ViewMode === 'model-voxel' ? ['structure', 'model'].includes(group.id) : ['scan', 'structure', 'furniture'].includes(group.id)}>
+      <details class="scan-group" open={modelOnly || ['scan', 'structure', 'furniture'].includes(group.id)}>
         <summary><span>{group.label}</span><small>{group.layers.filter(layer => layer.available).length}/{group.layers.length} 可用</small></summary>
         {#each group.layers as layer (layer.id)}
         {@const setting = $e22LayerSettings[layer.id]}
         {@const enabled = layer.available && supported(layer.kind)}
+        {@const declaredCount = e22DeclaredVoxelCount(layer.kind, layer.gridCellCounts, $e22GridStep)}
+        {@const countLoaded = Object.prototype.hasOwnProperty.call($e22VoxelTotals, layer.id) || declaredCount !== undefined}
+        {@const totalCells = $e22VoxelTotals[layer.id] ?? declaredCount ?? 0}
+        {@const drawnCells = e22DisplayedVoxelCount(totalCells, $e22VoxelDrawLimits[layer.id])}
         <div class="scan-layer" class:disabled={!enabled}>
           <label class="scan-layer-title" title={enabled ? layer.provenance : layer.reason || '此层不可用'}>
             <input type="checkbox" checked={Boolean(setting?.visible)} disabled={!enabled}
@@ -70,13 +76,28 @@
                 type="checkbox" checked={Boolean(setting?.clipped)}
                 onchange={(event) => setE22LayerClipped(layer.id, event.currentTarget.checked)} />剖切</label>
             </div>
+            {#if E22_VOXEL_GRID_KINDS.has(layer.kind)}
+              <div class="scan-voxel-count">
+                {#if countLoaded}
+                  <span>全量 {totalCells.toLocaleString()} / 显示 {drawnCells.toLocaleString()} 格</span>
+                {:else}
+                  <span>格数未读取</span>
+                {/if}
+                {#if countLoaded && totalCells > 0}
+                  <input aria-label={layer.label + ' 显示体素数量'} type="range" min="0" max={Math.min(totalCells, E22_MAX_RENDER_CELLS)} step="1"
+                    value={drawnCells}
+                    oninput={(event) => setE22VoxelDrawLimit(layer.id, Number(event.currentTarget.value))} />
+                  {#if totalCells > E22_MAX_RENDER_CELLS}<small>浏览器显示上限 {E22_MAX_RENDER_CELLS.toLocaleString()} 格；全量资产保留</small>{/if}
+                {:else if !countLoaded}<small>此批资产未附格数；开启该层后读取</small>{/if}
+              </div>
+            {/if}
           {/if}
           {#if $e22LayerErrors[layer.id]}<p class="scan-error" role="alert">{$e22LayerErrors[layer.id]}</p>{/if}
         </div>
         {/each}
       </details>
       {/each}
-      {#if $e22Manifest.layers.some(layer => !layer.renderable)}
+      {#if !modelOnly && $e22Manifest.layers.some(layer => !layer.renderable)}
         <button type="button" class="scan-data-toggle" aria-expanded={showData} onclick={() => showData = !showData}>
           {showData ? '▾' : '▸'} 数据索引与账本
         </button>
@@ -90,21 +111,21 @@
       {/if}
     {/if}
   </section>
-{:else}
+{:else if !modelOnly}
   <section class="scan-empty" aria-label="扫描图层未绑定">
     <strong>扫描图层尚未绑定</strong>
     <p>使用现有的 Import Scan / RoomPlan 导入扫描，或重新打开已处理的扫描平面，此处将显示对应图层。</p>
   </section>
+{:else}
+  <p class="model-empty">AI 命名实体 GLB 尚未生成；先导入扫描后可查看模型资产。</p>
 {/if}
 
 <style>
   .scan-layers{margin:11px 10px 13px;border:1px solid #d3bc8055;border-radius:8px;background:linear-gradient(155deg,#283331,#1d2828 60%,#1a2324);color:#e9ede3;box-shadow:inset 0 1px #ffffff14;font-size:11px}
+  .scan-layers.models-only{margin:0;border:0;border-radius:0;box-shadow:none;background:transparent}
   .scan-head{display:flex;flex-direction:column;gap:4px;padding:11px 12px;border-bottom:1px solid #ffffff1b}
   .scan-head strong{font-size:12px;color:#e9d5a7;font-weight:600;word-break:break-all}
   .scan-head span,.scan-hint,.scan-layer-meta{color:#aab9b0}
-  .scan-modes{display:flex;gap:4px;padding:9px 9px 4px}
-  .scan-modes button{flex:1;border:1px solid #ffffff20;border-radius:4px;padding:6px 3px;color:#c4d3c6;background:#ffffff07;cursor:pointer}
-  .scan-modes button.active{border-color:#d2b7788a;background:#cbb27622;color:#f1dba9}
   .scan-grain{display:flex;align-items:center;justify-content:space-between;padding:4px 12px;color:#c8d4cb}
   .scan-editor-walls{display:flex;align-items:center;gap:7px;padding:5px 12px;color:#c8d4cb;cursor:pointer}
   .scan-editor-walls input{accent-color:#d4bd81}
@@ -136,9 +157,13 @@
   .scan-layer-meta .scan-unavailable{line-height:1.4;color:#d8bba5;text-align:right}
   .scan-layer-controls{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:7px 0 0 22px;color:#b6c7ba;font-size:10px}
   .scan-layer-controls input[type="range"]{width:64px;accent-color:#d4bd81}
+  .scan-voxel-count{margin:8px 0 0 22px;padding-top:7px;border-top:1px solid #ffffff13;display:flex;flex-direction:column;gap:5px;color:#b6c7ba;font-size:10px;font-variant-numeric:tabular-nums}
+  .scan-voxel-count input{width:100%;accent-color:#d4bd81}
+  .scan-voxel-count small{color:#87988c}
   .scan-empty{margin:11px 10px 13px;padding:12px;border:1px solid #d3bc8055;border-radius:8px;background:linear-gradient(155deg,#283331,#1d2828);color:#e9ede3;font-size:11px}
   .scan-empty strong{color:#e9d5a7;font-size:12px}
   .scan-empty p{margin:6px 0 0;color:#aab9b0;line-height:1.5}
+  .model-empty{padding:9px 12px;margin:0;color:#aab9b0;font-size:11px;line-height:1.4}
   .scan-data-toggle{width:100%;text-align:left;padding:10px 11px;color:#bfcbbf;border-top:1px solid #ffffff18;cursor:pointer}
   .scan-data-list{padding:0 11px 10px 24px;color:#aebdb2;line-height:1.7}
   .scan-data-list li{display:flex;justify-content:space-between;gap:7px}

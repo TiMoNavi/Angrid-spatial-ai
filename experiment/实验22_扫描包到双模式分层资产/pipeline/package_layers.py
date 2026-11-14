@@ -12,6 +12,7 @@ from pathlib import Path
 import tempfile
 
 from floor_plan import build_model_candidates, build_plan, render_svg
+from derived_evidence import verified_asset
 
 
 def sha(path: Path) -> str:
@@ -66,6 +67,23 @@ def local_file(scan: Path, relative: str) -> Path:
     if not path.is_relative_to(scan) or not path.is_file() or (scan / relative).is_symlink():
         raise ValueError('asset URI escaped the scan or is not a file')
     return path
+
+
+def grid_cell_counts(path: Path, *, raw_surface: bool = False) -> dict[str, int]:
+    """Expose per-resolution source counts before the viewer loads dense cells."""
+    data = read(path)
+    grids = data.get('sources', {}).get('ply', {}).get('grids', {}) if raw_surface else data.get('grids', {})
+    if not isinstance(grids, dict):
+        raise ValueError('voxel grids must be an object')
+    counts = {}
+    for step, grid in grids.items():
+        count = grid.get('surfaceCells' if raw_surface else 'recordCount')
+        if count is None and not raw_surface:
+            count = len(grid.get('cells', []))
+        if not isinstance(count, int) or count < 0:
+            raise ValueError('voxel grid count must be a nonnegative integer')
+        counts[str(step)] = count
+    return counts
 
 
 def package(scan: Path, mode: str, ledger_dir: str, model_dir: str, evidence_dir: str) -> Path:
@@ -152,6 +170,7 @@ def package(scan: Path, mode: str, ledger_dir: str, model_dir: str, evidence_dir
         reason='RoomPlan furniture boxes retained.' if objects else 'No valid RoomPlan furniture objects.')
     add('scan-surface-grid', '原始 PLY 表面体素', 'packed-surface-grid', 'measured',
         'mesh-surface-grids.json', color='#a3bbd5', order=50,
+        gridCellCounts=grid_cell_counts(scan / 'mesh-surface-grids.json', raw_surface=True),
         gridSelector='sources.ply.grids', meaning='Surface cells only, not solid furniture.', **refs)
     labels = {'clean-structure-grid': ('平整结构体素', 'structure', '#61d5e7', True),
               'furniture-classified-grid': ('大件平整家具表面体素', 'furniture', '#e5ba77', True),
@@ -164,7 +183,9 @@ def package(scan: Path, mode: str, ledger_dir: str, model_dir: str, evidence_dir
         add(item['id'], label, item['kind'], item['provenance'],
             'derived-v1/' + item['geometryUri'] if item['available'] else None,
             available=item['available'], reason=item.get('warning'), group=group, visible=visible,
-            color=color, recordCount=item.get('recordCount', 0), order=60)
+            color=color, recordCount=item.get('recordCount', 0), order=60,
+            gridCellCounts=(grid_cell_counts(local_file(scan, 'derived-v1/' + item['geometryUri']))
+                            if item['available'] else {}))
     add('furniture-slices', '家具扫描切片', 'mesh-collection', 'measured',
         'layers/furniture-slices.json', group='furniture', color='#e5ba77', opacity=.65,
         order=30, meshCount=len(slices), available=bool(slices),
@@ -174,11 +195,24 @@ def package(scan: Path, mode: str, ledger_dir: str, model_dir: str, evidence_dir
         order=85, wireframe=True, available=bool(aabbs),
         reason='Bounds of observed slices retained.' if aabbs else 'No valid observed slice bounds.',
         meaning='Observed bounds; never treated as complete object bounds.')
-    add('depth-projected-points', '深度投影点', 'point-cloud', 'measured', available=False,
-        reason='Depth frame evidence is retained, but no calibrated point-display asset has been generated.', order=25)
-    add('tsdf-fused-mesh', 'TSDF 融合网格', 'triangle-mesh', 'depth-fused', available=False,
-        reason='No TSDF fusion ran in this workflow; depth frames do not constitute a TSDF mesh.',
-        visible=True, opacity=1, order=10)
+    depth_asset = verified_asset(scan, imported, 'depth')
+    fusion_asset = verified_asset(scan, imported, 'fusion')
+    add('depth-projected-points', '深度投影点', 'point-cloud', 'measured',
+        depth_asset['geometryUri'] if depth_asset else None,
+        available=bool(depth_asset),
+        reason='No identity-verified calibrated depth-point PLY was generated.' if not depth_asset else None,
+        recordCount=depth_asset['recordCount'] if depth_asset else 0,
+        identityUri=depth_asset['identityUri'] if depth_asset else None,
+        identitySha256=depth_asset['identitySha256'] if depth_asset else None,
+        color='#e6b785', opacity=.35, order=25)
+    add('tsdf-fused-mesh', 'TSDF 融合网格', 'triangle-mesh', 'depth-fused',
+        fusion_asset['geometryUri'] if fusion_asset else None,
+        available=bool(fusion_asset),
+        reason='No identity-verified TSDF mesh was generated; depth points are not TSDF.' if not fusion_asset else None,
+        recordCount=fusion_asset['recordCount'] if fusion_asset else 0,
+        identityUri=fusion_asset['identityUri'] if fusion_asset else None,
+        identitySha256=fusion_asset['identitySha256'] if fusion_asset else None,
+        color='#ffffff', visible=True, opacity=1, order=10)
     add('gaussian-splat', '高斯泼溅', 'gaussian-splat', 'photo-reconstructed', available=False,
         reason='No Gaussian-splat reconstruction was generated or imported.', order=15)
     add('photo-evidence', '带机位照片索引', 'photo-index', 'measured',
@@ -223,7 +257,8 @@ def package(scan: Path, mode: str, ledger_dir: str, model_dir: str, evidence_dir
         add('model-voxel-grid', 'AI 家具脑补修正体素', 'instance-voxel-grid', 'model-inferred',
             model_dir + '/voxel-occupancy.json', group='model', opacity=.1, color='#8addc7',
             visible=True, order=65, instancesInSingleLayer=True, grid=build['grid'],
-            cellCount=build['uniqueCellCount'], **model_meta)
+            cellCount=build['uniqueCellCount'],
+            gridCellCounts={str(build['grid']['stepM']): build['uniqueCellCount']}, **model_meta)
         add('model-evidence-overlay', '模型与扫描证据回绑', 'voxel-evidence-overlay', 'comparison',
             evidence_dir + '/evidence-ledger.json', group='review', opacity=.4, color='#ffa7c1',
             order=75, cellStates=evidence['cellStates'], **model_meta)
@@ -320,6 +355,14 @@ def verify_manifest(scan: Path, path: Path) -> dict:
             uri = layer['geometryUri'] if layer['renderable'] else layer['dataUri']
             if sha(local_file(scan, uri)) != layer['sha256']:
                 raise ValueError('layer asset hash differs from its manifest')
+            if layer['id'] in ('depth-projected-points', 'tsdf-fused-mesh'):
+                kind = 'depth' if layer['id'] == 'depth-projected-points' else 'fusion'
+                trusted = verified_asset(scan, imported, kind)
+                if (not trusted or trusted['geometryUri'] != uri or
+                        trusted['sha256'] != layer['sha256'] or
+                        trusted['identityUri'] != layer.get('identityUri') or
+                        trusted['identitySha256'] != layer.get('identitySha256')):
+                    raise ValueError('derived evidence identity differs from layer manifest')
             if layer['kind'] == 'mesh-collection':
                 for item in read(local_file(scan, uri))['meshes']:
                     if sha(local_file(scan, item['geometryUri'])) != item['sha256']:

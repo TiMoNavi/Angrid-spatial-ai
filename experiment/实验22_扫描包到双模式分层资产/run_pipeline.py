@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -22,6 +23,10 @@ PRIVATE = EXPERIMENT / '.private'
 IMPORTER = HERE / 'importer/import_bundle.py'
 CLASSIFIER = HERE / 'classification/prepare_classified.py'
 VIEW = HERE / 'view_assets/prepare.py'
+DERIVED = HERE / 'pipeline/derived_evidence.py'
+E4_DEPTH = HERE / 'pipeline/legacy_e4/prepare_voxel_evidence.py'
+E4_FUSION = HERE / 'pipeline/legacy_e4/prepare_reference.py'
+REFERENCE_TSDF = HERE / 'skill-baseline/scan-to-threejs/scripts/reconstruct_bundle.py'
 INSTANCES = HERE / 'pipeline/instance_candidates.py'
 BUILDER = HERE / 'voxel/voxel_plan_builder.py'
 BINDER = HERE / 'voxel/bind_voxel_evidence.py'
@@ -30,6 +35,8 @@ MODEL_DIR = 'model-voxel'
 EVIDENCE_DIR = 'model-evidence'
 STATE_NAME = 'e22-pipeline-state.json'
 VERSION = 'e22-layers-v1'
+LEGACY_V1_WRAPPER_SHA = '61253a1d5b338cd1397c1c1c62b0522ad2f6aa40f3e4f5d03a18c832d0e374fa'
+LEGACY_EXTERNAL_DERIVED_SHA = '3bfffe40c47d1cae4f6d469655765942842a399d6d33eb0155119d6d97d2403c'
 
 
 class PipelineError(ValueError):
@@ -83,7 +90,7 @@ def asset(scan: Path, manifest: dict, key: str) -> Path:
 
 def inputs(stage: str, scan: Path, source: Path, roomplan: Path) -> dict:
     files = {'source': source, 'converted': scan / 'converted.json',
-             'roomplan': roomplan, 'wrapper': Path(__file__)}
+             'roomplan': roomplan}
     if stage == 'classification':
         files['code'] = CLASSIFIER
     elif stage == 'view':
@@ -94,6 +101,13 @@ def inputs(stage: str, scan: Path, source: Path, roomplan: Path) -> dict:
                       'assignments': scan / 'derived-v1/face-assignments.json',
                       'layerManifest': scan / 'derived-v1/layer-manifest.json',
                       'segmentReport': scan / 'derived-v1/segment-report.json'})
+    elif stage == 'depth':
+        files.update({'code': DERIVED, 'upstreamDepth': E4_DEPTH,
+                      'archive': scan / 'source-archive.zip'})
+    elif stage == 'fusion':
+        files.update({'code': DERIVED, 'upstreamFusion': E4_FUSION,
+                      'referenceTSDF': REFERENCE_TSDF,
+                      'archive': scan / 'source-archive.zip'})
     else:
         raise PipelineError('unknown stage')
     result = {key: sha(path) for key, path in files.items()}
@@ -109,6 +123,12 @@ def outputs(stage: str, scan: Path) -> dict:
         files = [scan / 'mesh-surface-grids.json', scan / 'mesh-voxels/raw-room.ply']
     elif stage == 'instances':
         files = [scan / LEDGER_DIR / 'instance-ledger.json']
+    elif stage == 'depth':
+        files = [scan / 'depth-evidence' / name for name in
+                 ('full-depth-surface-025.ply', 'full-depth-surface-report.json', 'asset-identity.json')]
+    elif stage == 'fusion':
+        files = [scan / 'reference-depth' / name for name in
+                 ('scan_room.ply', 'scan_room.glb', 'run-config.json', 'asset-identity.json')]
     elif stage == 'model':
         files = [scan / MODEL_DIR / name for name in
                  ('reconstructed.glb', 'voxel-plan.json', 'voxel-occupancy.json', 'build-report.json')]
@@ -191,10 +211,16 @@ def stage(*, state: dict, scan: Path, name: str, source: Path, roomplan: Path,
     actual_inputs = inputs(name, scan, source, roomplan)
     previous = state['stages'].get(name)
     if previous is not None:
-        if previous.get('inputs') != actual_inputs or previous.get('outputs') != outputs(name, scan):
+        migrate = checkpoint_inputs_migrate(previous.get('inputs'), actual_inputs)
+        if migrate is None and name in ('depth', 'fusion'):
+            migrate = checkpoint_derived_inputs_migrate(previous.get('inputs'), actual_inputs)
+        if migrate is None or previous.get('outputs') != outputs(name, scan):
             raise PipelineError(f'{name} checkpoint differs from current inputs or outputs')
         verify()
-        return 'verified'
+        if migrate:
+            previous['inputs'] = actual_inputs
+            write_state(scan, state)
+        return 'migrated-and-verified' if migrate else 'verified'
     if exists and not adopt:
         raise PipelineError(f'{name} already exists without checkpoint; use --adopt-existing to verify it')
     if not exists:
@@ -203,6 +229,27 @@ def stage(*, state: dict, scan: Path, name: str, source: Path, roomplan: Path,
     state['stages'][name] = {'inputs': actual_inputs, 'outputs': outputs(name, scan)}
     write_state(scan, state)
     return 'adopted' if exists else 'generated'
+
+
+def checkpoint_inputs_migrate(previous: dict, current: dict) -> bool | None:
+    """Remove the known V1 runner hash only after other inputs and outputs verify.
+
+    Stage implementation hashes remain pinned. A wrapper-only change such as
+    adding another optional evidence stage must not invalidate old scan assets.
+    """
+    if previous == current:
+        return False
+    if isinstance(previous, dict) and previous.get('wrapper') == LEGACY_V1_WRAPPER_SHA:
+        if {key: value for key, value in previous.items() if key != 'wrapper'} == current:
+            return True
+    return None
+
+
+def checkpoint_derived_inputs_migrate(previous: dict, current: dict) -> bool | None:
+    """Repoint identical copied sources after verifying the published evidence."""
+    if not isinstance(previous, dict) or previous.get('code') != LEGACY_EXTERNAL_DERIVED_SHA:
+        return None
+    return True if {**previous, 'code': current.get('code')} == current else None
 
 
 def validate_plan_identity(plan_path: Path, scan: Path, source: Path) -> dict:
@@ -261,9 +308,14 @@ def model_stage(state: dict, scan: Path, source: Path, roomplan: Path, plan_path
                'plan': sha(plan_path), 'builder': sha(BUILDER), 'binder': sha(BINDER)}
     previous = state['stages'].get('model')
     if previous is not None:
-        if previous.get('inputs') != current or previous.get('outputs') != outputs('model', scan):
+        migrate = checkpoint_inputs_migrate(previous.get('inputs'), current)
+        if migrate is None or previous.get('outputs') != outputs('model', scan):
             raise PipelineError('model checkpoint differs from current inputs or outputs')
-        return 'verified', verify_model(plan_path, scan, source)
+        report = verify_model(plan_path, scan, source)
+        if migrate:
+            previous['inputs'] = current
+            write_state(scan, state)
+        return ('migrated-and-verified' if migrate else 'verified'), report
     exists = (scan / MODEL_DIR).exists() or (scan / EVIDENCE_DIR).exists()
     if exists and not adopt:
         raise PipelineError('model outputs exist without checkpoint; use --adopt-existing after inspection')
@@ -409,6 +461,35 @@ def run(zip_file: Path, scan_id: str, room_index: int | None, adopt: bool = Fals
                                    '--out', str(ledger)],
                           verify=lambda: verify_instances(scan, source, report))
     instances = read(ledger / 'instance-ledger.json')
+    sys.path.insert(0, str(HERE / 'pipeline'))
+    from derived_evidence import verified_asset
+    depth_action = 'unavailable-no-depth-frames'
+    fusion_action = 'unavailable-no-depth-frames'
+    if manifest['depthIndex']['availableEntries']:
+        depth_action = stage(state=state, scan=scan, name='depth', source=source,
+                             roomplan=roomplan, exists=(scan / 'depth-evidence').exists(),
+                             adopt=adopt,
+                             command=[sys.executable, str(DERIVED), 'depth', '--scan-dir', str(scan),
+                                      '--archive', str(zip_file)],
+                             verify=lambda: verified_asset(scan, manifest, 'depth') or
+                                 (_ for _ in ()).throw(PipelineError('depth publication missing')))
+        if importlib.util.find_spec('open3d') is None:
+            fusion_action = 'unavailable-open3d-not-installed'
+        elif (scan / 'reference-depth').exists() and 'fusion' not in state['stages'] and not adopt:
+            fusion_action = 'unavailable-unverified-existing-fusion'
+        else:
+            try:
+                fusion_action = stage(state=state, scan=scan, name='fusion', source=source,
+                                      roomplan=roomplan, exists=(scan / 'reference-depth').exists(),
+                                      adopt=adopt,
+                                      command=[sys.executable, str(DERIVED), 'fusion', '--scan-dir', str(scan),
+                                               '--archive', str(zip_file)],
+                                      verify=lambda: verified_asset(scan, manifest, 'fusion') or
+                                          (_ for _ in ()).throw(PipelineError('TSDF publication missing')))
+            except PipelineError:
+                if 'fusion' in state['stages'] or (scan / 'reference-depth').exists():
+                    raise
+                fusion_action = 'unavailable-tsdf-generation-failed'
     model_action = None
     model_report = None
     job_action = None
@@ -438,7 +519,8 @@ def run(zip_file: Path, scan_id: str, room_index: int | None, adopt: bool = Fals
               'availableRenderableLayerCount': sum(row['available'] and row['renderable'] for row in layer_manifest['layers']),
               'availableDataLayerCount': sum(row['available'] and not row['renderable'] for row in layer_manifest['layers']),
               'stageActions': {'classification': class_action, 'view': view_action,
-                               'instances': ledger_action}}
+                               'instances': ledger_action, 'depth': depth_action,
+                               'fusion': fusion_action}}
     if model_action is not None:
         result['stageActions']['model'] = model_action
         result['model'] = {key: model_report[key] for key in

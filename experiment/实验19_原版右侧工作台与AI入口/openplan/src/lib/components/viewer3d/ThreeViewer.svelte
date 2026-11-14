@@ -10,7 +10,7 @@
   import { openAISettings, setOpenAIModel } from '$lib/stores/aiKeys';
   import { generateOpenAIRenderImage, validateOpenAIConfig, getEffectiveModel, normalizeBaseUrl } from '$lib/utils/openaiClient';
   import OpenAIModelPicker from '$lib/components/ai/OpenAIModelPicker.svelte';
-  import { activeFloor, currentProject, selectedElementId, selectedTool, placingFurnitureId, snapEnabled, beginUndoGroup, endUndoGroup, transformFurnitureDuringDrag } from '$lib/stores/project';
+  import { activeFloor, currentProject, layerVisibility, selectedElementId, selectedTool, placingFurnitureId, snapEnabled, beginUndoGroup, endUndoGroup, transformFurnitureDuringDrag } from '$lib/stores/project';
   import { triggerTip } from '$lib/stores/onboarding.svelte';
   import type { Floor, Wall, Door, Window as Win, Stair, Point, FurnitureItem } from '$lib/models/types';
   import { getWallStartHeight, getWallEndHeight } from '$lib/models/types';
@@ -53,7 +53,7 @@
   import { DEPTH_ORDER, depthOffset, furnitureDepthOffsets } from '$lib/utils/depthOrder';
   import { columnGeometry } from '$lib/utils/columnGeometry';
   import { getWallTextureCanvas, getFloorTextureCanvas, setTextureLoadCallback } from '$lib/utils/textureGenerator';
-  import { activeE22Scan, e22ClipEnabled, e22ClipHeightM, e22GridStep, e22LayerErrors, e22LayerSettings, e22Manifest, e22ShowEditorWalls } from '$lib/stores/e22Scan';
+  import { activeE22Scan, e22ClipEnabled, e22ClipHeightM, e22DisplayedVoxelCount, e22GridStep, e22LayerErrors, e22LayerSettings, e22Manifest, e22ShowEditorWalls, e22VoxelDrawLimits, e22VoxelTotals } from '$lib/stores/e22Scan';
   import { E22_RENDERABLE_KINDS, E22_RESOLUTION_GRID_KINDS, loadE22Layer, type LoadedE22Layer } from '$lib/services/e22LayerLoader';
 
   let container: HTMLDivElement;
@@ -102,6 +102,7 @@
     pendingScanLayers.clear();
     for (const layer of loadedScanLayers.values()) layer.dispose();
     loadedScanLayers.clear();
+    e22VoxelTotals.set({});
     markSceneDirty();
   }
 
@@ -115,18 +116,29 @@
     markSceneDirty();
   }
 
+  function applyFurnitureVisibility() {
+    const visible = get(layerVisibility).furniture;
+    if (!visible && furnitureDrag) clearFurnitureDrag(true);
+    for (const model of furnitureModels.values()) model.visible = visible;
+    for (const target of furnitureHitGroup.children) target.visible = visible;
+    markSceneDirty();
+  }
+
   /** E22 is already room-local, +Y-up and in metres; one scale maps it to OpenPlan centimetres. */
   function syncScanLayers() {
     if (!scanLayerRoot) return;
     const link = get(activeE22Scan), manifest = get(e22Manifest);
     const step = get(e22GridStep), settings = get(e22LayerSettings);
+    const drawLimits = get(e22VoxelDrawLimits);
     const clipEnabled = get(e22ClipEnabled), clipHeightM = get(e22ClipHeightM);
     const key = link && manifest && link.scanId === manifest.scanId
       ? link.scanId + ':' + manifest.mode + ':' + manifest.transformHash : '';
+    const stepChanged = scanLayerStep !== step;
+    scanLayerStep = step;
     if (scanLayerKey !== key) {
       clearScanLayers();
       scanLayerKey = key;
-    } else if (scanLayerStep !== step && manifest) {
+    } else if (stepChanged && manifest) {
       // PLY, GLB and RoomPlan frames do not change when a grid is refined.
       for (const layer of manifest.layers) {
         if (!E22_RESOLUTION_GRID_KINDS.has(layer.kind)) continue;
@@ -135,8 +147,17 @@
         loadedScanLayers.get(layer.id)?.dispose();
         loadedScanLayers.delete(layer.id);
       }
+      e22VoxelTotals.update(all => {
+        const next = { ...all };
+        for (const layer of manifest.layers) if (E22_RESOLUTION_GRID_KINDS.has(layer.kind)) delete next[layer.id];
+        return next;
+      });
+      e22VoxelDrawLimits.update(all => {
+        const next = { ...all };
+        for (const layer of manifest.layers) if (E22_RESOLUTION_GRID_KINDS.has(layer.kind)) delete next[layer.id];
+        return next;
+      });
     }
-    scanLayerStep = step;
     if (!link || !manifest || !key) return;
     for (const layer of manifest.layers) {
       const visible = !!settings[layer.id]?.visible && layer.available && layer.renderable && E22_RENDERABLE_KINDS.has(layer.kind);
@@ -146,6 +167,10 @@
         if (visible) {
           existing.setOpacity(settings[layer.id].opacity);
           existing.setClipping(clipEnabled && settings[layer.id].clipped, clipHeightM);
+          if (existing.totalCells !== undefined) {
+            const total = existing.totalCells;
+            existing.setVoxelFraction?.(total ? e22DisplayedVoxelCount(total, drawLimits[layer.id]) / total : 0);
+          }
         }
         continue;
       }
@@ -160,6 +185,7 @@
         loaded.object.name = 'E22 ' + layer.id;
         scanLayerRoot.add(loaded.object);
         loadedScanLayers.set(layer.id, loaded);
+        if (loaded.totalCells !== undefined) e22VoxelTotals.update(all => ({ ...all, [layer.id]: loaded.totalCells! }));
         e22LayerErrors.update(errors => { const next = { ...errors }; delete next[layer.id]; return next; });
         syncScanLayers();
         markSceneDirty();
@@ -1381,7 +1407,7 @@
 
   /** Capture phase runs before OrbitControls, so grabbing furniture never rotates the camera. */
   function onFurniturePointerDown(event: PointerEvent) {
-    if (event.button !== 0 || walkthroughMode || cameraPlacementMode || furniturePlacementMode || !currentFloor) return;
+    if (event.button !== 0 || walkthroughMode || cameraPlacementMode || furniturePlacementMode || !currentFloor || !get(layerVisibility).furniture) return;
     setPointerRay(event);
     const picked = raycaster.intersectObjects(furnitureHitGroup.children, false)[0]?.object;
     const id = picked?.userData.furnitureId as string | undefined;
@@ -2517,6 +2543,7 @@
       buildStairwell(stairwellView(project.floors, currentFloor.id));
     }
     rebuildFurnitureHitTargets();
+    applyFurnitureVisibility();
     // Fit the orbit camera only for a new project, floor or stacking choice, so edits, Undo/Redo,
     // unit changes and arriving textures keep the user's view. Walkthrough restores its pose below.
     const context = framingContext(project, currentFloor, showAllFloors);
@@ -2741,7 +2768,9 @@
     const stopScanStep = e22GridStep.subscribe(syncScanLayers);
     const stopScanClipEnabled = e22ClipEnabled.subscribe(syncScanLayers);
     const stopScanClipHeight = e22ClipHeightM.subscribe(syncScanLayers);
+    const stopScanDrawLimits = e22VoxelDrawLimits.subscribe(syncScanLayers);
     const stopEditorWalls = e22ShowEditorWalls.subscribe(applyE22EditorWallVisibility);
+    const stopFurnitureVisibility = layerVisibility.subscribe(applyFurnitureVisibility);
     markSceneDirty();
     studioMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
     studioPulseTimer = setInterval(() => {
@@ -2820,7 +2849,9 @@
       stopScanStep();
       stopScanClipEnabled();
       stopScanClipHeight();
+      stopScanDrawLimits();
       stopEditorWalls();
+      stopFurnitureVisibility();
       clearScanLayers();
       scanLayerRoot?.parent?.remove(scanLayerRoot);
       scanLayerRoot = null;

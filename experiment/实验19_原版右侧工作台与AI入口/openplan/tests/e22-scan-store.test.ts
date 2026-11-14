@@ -3,9 +3,9 @@ import { get } from 'svelte/store';
 
 vi.mock('$app/environment', () => ({ browser: true }));
 
-import { activeE22Scan, e22ClipEnabled, e22ClipHeightM, e22LayerSettings, e22LoadState, e22Manifest, e22ShowEditorWalls, e22ViewMode,
+import { activeE22Scan, e22ClipEnabled, e22ClipHeightM, e22LayerSettings, e22LoadState, e22Manifest, e22ShowEditorWalls, e22VoxelDrawLimits, e22VoxelTotals,
   refreshE22Manifest, restoreE22Scan, setE22ClipHeightM, setE22LayerClipped, setE22LayerOpacity, setE22LayerVisible,
-  setE22ViewMode, type E22Manifest } from '$lib/stores/e22Scan';
+  setE22VoxelDrawLimit, type E22Manifest } from '$lib/stores/e22Scan';
 
 const link = {
   projectId: 'project-1', scanId: 'scan-1', roomIndex: 0,
@@ -29,13 +29,14 @@ afterEach(() => {
   activeE22Scan.set(null);
   e22Manifest.set(null);
   e22LayerSettings.set({});
-  e22ViewMode.set('scan-evidence');
+  e22VoxelTotals.set({});
+  e22VoxelDrawLimits.set({});
   e22ShowEditorWalls.set(false);
   e22ClipEnabled.set(true);
   e22ClipHeightM.set(1.5);
 });
 
-it('clears scan-mode layers when the requested model mode has no generated manifest', async () => {
+it('keeps scan evidence visible and labels missing model assets when no model manifest exists', async () => {
   const fetchMock = vi.fn()
     .mockResolvedValueOnce(new Response(JSON.stringify(manifest), { status: 200 }))
     .mockResolvedValueOnce(new Response('Not found', { status: 404 }));
@@ -45,12 +46,35 @@ it('clears scan-mode layers when the requested model mode has no generated manif
   expect(get(e22Manifest)?.mode).toBe('scan-evidence');
   expect(get(e22LayerSettings)['raw-lidar-ply'].visible).toBe(false);
 
-  await setE22ViewMode('model-voxel');
-  expect(get(e22ViewMode)).toBe('model-voxel');
-  expect(get(e22Manifest)).toBeNull();
-  expect(get(e22LayerSettings)).toEqual({});
-  expect(get(e22LoadState).error).toMatch(/No E22 assets/);
+  expect(get(e22Manifest)?.layers.map(layer => layer.id)).toContain('reconstructed-model');
+  expect(get(e22Manifest)?.layers.find(layer => layer.id === 'reconstructed-model')).toMatchObject({
+    available: false, renderable: true, kind: 'named-glb', geometryUri: null,
+  });
+  expect(get(e22Manifest)?.layers.find(layer => layer.id === 'reconstructed-model')?.reason).toMatch(/尚未生成/);
+  expect(get(e22LayerSettings)['raw-lidar-ply'].visible).toBe(false);
+  expect(get(e22LoadState).error).toBeNull();
   expect(fetchMock.mock.calls[1][0]).toBe('/api/e22-scans/scan-1/layer-manifest.model-voxel.json');
+});
+
+it('merges a generated GLB and model voxels without replacing the scan layers', async () => {
+  const model = { ...manifest, mode: 'model-voxel' as const, layers: [
+    { ...manifest.layers[0], id: 'reconstructed-model', label: 'Named GLB', kind: 'named-glb', group: 'model', geometryUri: 'model-voxel/reconstructed.glb' },
+    { ...manifest.layers[0], id: 'model-voxel-grid', label: 'Model voxels', kind: 'instance-voxel-grid', group: 'model', geometryUri: 'model-voxel/voxel-occupancy.json', gridCellCounts: { '0.05': 597 } },
+  ] };
+  const fetchMock = vi.fn().mockResolvedValueOnce(new Response(JSON.stringify(manifest), { status: 200 }))
+    .mockResolvedValueOnce(new Response(JSON.stringify(model), { status: 200 }));
+  vi.stubGlobal('fetch', fetchMock);
+  activeE22Scan.set(link);
+  await refreshE22Manifest();
+  const combined = get(e22Manifest);
+  expect(combined?.layers.map(row => row.id)).toContain('raw-lidar-ply');
+  expect(combined?.layers.find(row => row.id === 'reconstructed-model')).toMatchObject({ available: true, kind: 'named-glb' });
+  expect(combined?.layers.find(row => row.id === 'model-voxel-grid')).toMatchObject({ available: true, kind: 'instance-voxel-grid' });
+  setE22LayerVisible('reconstructed-model', true);
+  setE22VoxelDrawLimit('model-voxel-grid', 300);
+  expect(get(e22LayerSettings)['reconstructed-model'].visible).toBe(true);
+  expect(get(e22VoxelDrawLimits)['model-voxel-grid']).toBe(300);
+  expect(get(e22LayerSettings)['raw-lidar-ply'].visible).toBe(false);
 });
 
 it('starts scan mode with RoomPlan lines and clean voxels, and enables available TSDF', async () => {
@@ -70,6 +94,23 @@ it('starts scan mode with RoomPlan lines and clean voxels, and enables available
   expect(settings['tsdf-fused-mesh']).toEqual({ visible: true, opacity: 1, clipped: true });
   expect(settings['roomplan-structure'].clipped).toBe(false);
   expect(settings['clean-structure-grid'].clipped).toBe(true);
+});
+
+it('keeps source voxel counts separate from bounded display counts and resets on scan switch', async () => {
+  const grid = { ...manifest.layers[0], id: 'clean-structure-grid', kind: 'clean-structure-grid', gridCellCounts: { '0.2': 200_000 } };
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({ ...manifest, layers: [grid] }), { status: 200 })));
+  activeE22Scan.set(link);
+  await refreshE22Manifest();
+  setE22VoxelDrawLimit(grid.id, 1_234);
+  expect(get(e22VoxelTotals)).toEqual({}); // the hidden grid did not need an asset fetch
+  expect(get(e22VoxelDrawLimits)[grid.id]).toBe(1_234);
+  setE22VoxelDrawLimit(grid.id, 200_000);
+  expect(get(e22VoxelDrawLimits)[grid.id]).toBe(150_000);
+  e22VoxelTotals.set({ [grid.id]: 200_000 });
+  expect(get(e22VoxelTotals)[grid.id]).toBe(200_000);
+  restoreE22Scan('ordinary-project');
+  expect(get(e22VoxelTotals)).toEqual({});
+  expect(get(e22VoxelDrawLimits)).toEqual({});
 });
 
 it('keeps per-layer cut choices when opacity or visibility changes and bounds the height', async () => {

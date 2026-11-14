@@ -113,7 +113,7 @@
             <span><strong>{$activeFloor?.furniture.length ?? 0}</strong>{$t('workbench.furniture')}</span>
           </div>
           <div class="studio-scene-name">{$currentProject?.name ?? 'OpenPlan3D'} <span>／ {$activeFloor?.name ?? '—'}</span></div>
-          <LayersPanel embedded />
+          <LayersPanel {mode} embedded />
         </div>
       {:else}
         <div id="studio-panel-assistant" role="tabpanel" aria-labelledby="studio-tab-assistant" class="studio-panel">

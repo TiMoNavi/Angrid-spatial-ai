@@ -2,9 +2,10 @@ import * as THREE from 'three';
 import { PLYLoader } from 'three/examples/jsm/loaders/PLYLoader.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import type { E22Layer, E22ScanLink } from '$lib/stores/e22Scan';
+import { E22_MAX_RENDER_CELLS } from '$lib/utils/e22VoxelDisplay';
 
 export const E22_RENDERABLE_KINDS = new Set([
-  'triangle-mesh', 'roomplan-structure', 'oriented-boxes', 'packed-surface-grid',
+  'triangle-mesh', 'point-cloud', 'roomplan-structure', 'oriented-boxes', 'packed-surface-grid',
   'clean-structure-grid', 'furniture-classified-grid', 'furniture-corrected-grid',
   'conflict-grid', 'unknown-grid', 'clutter-candidate-grid', 'mesh-collection',
   'axis-aligned-boxes', 'named-glb', 'instance-voxel-grid', 'voxel-evidence-overlay',
@@ -15,17 +16,37 @@ export const E22_RESOLUTION_GRID_KINDS = new Set([
   'packed-surface-grid', 'clean-structure-grid', 'furniture-classified-grid',
   'furniture-corrected-grid', 'conflict-grid', 'unknown-grid', 'clutter-candidate-grid',
 ]);
+/** These layers contain countable voxel instances; PLY/TSDF meshes and GLB do not. */
+export const E22_VOXEL_GRID_KINDS = new Set([
+  ...E22_RESOLUTION_GRID_KINDS, 'instance-voxel-grid', 'voxel-evidence-overlay',
+]);
 
-const MAX_CELLS = 150_000;
+const MAX_SOURCE_CELLS = 1_000_000;
 const MAX_MESHES = 40;
 type Cell = [number, number, number];
 type Grid = { stepM: number; originM: number[]; cells: Cell[] };
 
 export interface LoadedE22Layer {
   object: THREE.Object3D;
+  totalCells?: number;
+  setVoxelFraction?(fraction: number): number;
   setOpacity(value: number): void;
   setClipping(enabled: boolean, heightM: number): void;
   dispose(): void;
+}
+
+/** A nested, deterministic prefix spread across the source grid's index order. */
+export function spreadVoxelOrder(count: number, limit = count): number[] {
+  if (!Number.isSafeInteger(count) || count < 0 || count > MAX_SOURCE_CELLS ||
+      !Number.isSafeInteger(limit) || limit < 0 || limit > count) throw new Error('Invalid E22 voxel count.');
+  const bits = count <= 1 ? 0 : Math.ceil(Math.log2(count));
+  const order: number[] = [];
+  for (let i = 0; order.length < limit; i++) {
+    let value = i, reversed = 0;
+    for (let bit = 0; bit < bits; bit++) { reversed = (reversed << 1) | (value & 1); value >>>= 1; }
+    if (reversed < count) order.push(reversed);
+  }
+  return order;
 }
 
 function safeAssetUrl(link: E22ScanLink, uri: string): string {
@@ -74,14 +95,14 @@ function chooseGrid(data: any, stepM: number, packed = false): Grid {
   if (!Number.isFinite(step) || step <= 0 || Math.abs(step - stepM) > 1e-9 || !finiteTriple(origin))
     throw new Error('Invalid or mismatched E22 grid coordinates.');
   const cells = packed ? unpackSurfaceKeys(entry.keys, entry.counts) : entry.cells;
-  if (!Array.isArray(cells) || cells.length > MAX_CELLS || cells.some(cell => !finiteTriple(cell))) {
-    throw new Error('E22 grid exceeds the display limit or contains invalid cells. Select a coarser level.');
+  if (!Array.isArray(cells) || cells.length > MAX_SOURCE_CELLS || cells.some(cell => !finiteTriple(cell))) {
+    throw new Error('E22 grid exceeds the source safety limit or contains invalid cells. Select a coarser level.');
   }
   return { stepM: step, originM: origin, cells };
 }
 
 function instanceGrid(data: any): Grid {
-  if (!Array.isArray(data?.cells) || data.cells.length > MAX_CELLS ||
+  if (!Array.isArray(data?.cells) || data.cells.length > MAX_SOURCE_CELLS ||
       !finiteTriple(data?.grid?.originM) || !Number.isFinite(data?.grid?.stepM) || data.grid.stepM <= 0) {
     throw new Error('Invalid E22 model voxel grid.');
   }
@@ -108,18 +129,21 @@ function cubeEdgePositions(): number[] {
 
 function makeVoxelInstances(grid: Grid, color: string, order: number, evidence?: any[]): THREE.Group {
   const group = new THREE.Group();
+  group.userData.totalCells = grid.cells.length;
+  const capacity = Math.min(grid.cells.length, E22_MAX_RENDER_CELLS);
+  const sampledOrder = spreadVoxelOrder(grid.cells.length, capacity);
   const fill = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1),
     new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 1, depthWrite: false, depthTest: true, polygonOffset: true, polygonOffsetFactor: -1 }),
-    grid.cells.length);
+    capacity);
   fill.name = 'E22 voxel faces';
   fill.renderOrder = order;
   // MeshBasicMaterial.wireframe exposes each BoxGeometry face's triangle diagonal.
   // Instanced line geometry keeps only the twelve physical cube edges in one draw call.
   const edgeGeometry = new THREE.InstancedBufferGeometry();
   edgeGeometry.setAttribute('position', new THREE.Float32BufferAttribute(cubeEdgePositions(), 3));
-  const offsets = new Float32Array(grid.cells.length * 3);
+  const offsets = new Float32Array(capacity * 3);
   edgeGeometry.setAttribute('instanceOffset', new THREE.InstancedBufferAttribute(offsets, 3));
-  edgeGeometry.instanceCount = grid.cells.length;
+  edgeGeometry.instanceCount = capacity;
   const outline = new THREE.LineSegments(edgeGeometry, new THREE.ShaderMaterial({
     uniforms: {
       uColor: { value: new THREE.Color(color) },
@@ -139,8 +163,9 @@ function makeVoxelInstances(grid: Grid, color: string, order: number, evidence?:
   outline.frustumCulled = false;
   const dummy = new THREE.Object3D();
   const tint = new THREE.Color();
-  for (let i = 0; i < grid.cells.length; i++) {
-    const c = grid.cells[i];
+  for (let i = 0; i < capacity; i++) {
+    const sourceIndex = sampledOrder[i];
+    const c = grid.cells[sourceIndex];
     dummy.position.set(grid.originM[0] + (c[0] + .5) * grid.stepM,
       grid.originM[1] + (c[1] + .5) * grid.stepM,
       grid.originM[2] + (c[2] + .5) * grid.stepM);
@@ -149,7 +174,7 @@ function makeVoxelInstances(grid: Grid, color: string, order: number, evidence?:
     fill.setMatrixAt(i, dummy.matrix);
     offsets.set(dummy.position.toArray(), i * 3);
     if (evidence) {
-      const row = evidence[i];
+      const row = evidence[sourceIndex];
       const conflicts = row?.instanceEvidence?.some((item: any) => item.sameCellConflictFaceIds?.length);
       const support = row?.instanceEvidence?.some((item: any) => item.sameCellSourceFaceIds?.length);
       tint.set(conflicts ? '#f68b9d' : support ? '#87dec4' : '#d9a5c0');
@@ -172,8 +197,23 @@ function makePly(bytes: ArrayBuffer, color: string, order: number): THREE.Mesh {
     transparent: true, opacity: 1, depthWrite: false, depthTest: true,
     polygonOffset: true, polygonOffsetFactor: 1,
   }));
+  // Scan PLY and TSDF are comparison evidence. At 100% opacity they must not
+  // become a depth mask that hides the later voxel faces and cube outlines.
+  mesh.userData.e22NonOccludingEvidence = true;
   mesh.renderOrder = order;
   return mesh;
+}
+
+function makePointCloud(bytes: ArrayBuffer, color: string, order: number): THREE.Points {
+  const geometry = new PLYLoader().parse(bytes);
+  if (!geometry.getAttribute('position')) throw new Error('E22 point cloud has no positions.');
+  const points = new THREE.Points(geometry, new THREE.PointsMaterial({
+    color: geometry.getAttribute('color') ? '#ffffff' : color,
+    vertexColors: !!geometry.getAttribute('color'), size: 1.8, sizeAttenuation: true,
+    transparent: true, opacity: 1, depthWrite: false, depthTest: true,
+  }));
+  points.renderOrder = order;
+  return points;
 }
 
 function makeBoxLines(center: number[], size: number[], rotY: number, color: string, order: number): THREE.Object3D {
@@ -207,7 +247,7 @@ function makeRoomLines(data: any, color: string, order: number): THREE.Object3D 
   return lines;
 }
 
-function own(object: THREE.Object3D): LoadedE22Layer {
+function own(object: THREE.Object3D, totalCells?: number): LoadedE22Layer {
   let disposed = false;
   let displayOpacity: number | undefined;
   let clipEnabled = false;
@@ -225,6 +265,17 @@ function own(object: THREE.Object3D): LoadedE22Layer {
   const baseOpacity = new Map([...materials].map(material => [material, material.opacity]));
   return {
     object,
+    totalCells,
+    setVoxelFraction: totalCells === undefined ? undefined : (fraction) => {
+      const capacity = Math.min(totalCells, E22_MAX_RENDER_CELLS);
+      const count = Number.isFinite(fraction)
+        ? Math.max(0, Math.min(capacity, Math.round(totalCells * THREE.MathUtils.clamp(fraction, 0, 1)))) : 0;
+      const fill = object.children[0] as THREE.InstancedMesh;
+      const outlines = object.children[1] as THREE.LineSegments<THREE.InstancedBufferGeometry>;
+      fill.count = count;
+      outlines.geometry.instanceCount = count;
+      return count;
+    },
     setOpacity(value) {
       const opacity = Math.max(0, Math.min(1, value));
       if (displayOpacity === opacity) return;
@@ -239,7 +290,7 @@ function own(object: THREE.Object3D): LoadedE22Layer {
             material.uniforms.uOpacity.value = material.opacity;
           }
           material.transparent = material.opacity < 1;
-          material.depthWrite = material.opacity >= 1 && !child.userData.e22Outline;
+          material.depthWrite = material.opacity >= 1 && !child.userData.e22Outline && !child.userData.e22NonOccludingEvidence;
           material.needsUpdate = true;
         }
       });
@@ -295,6 +346,8 @@ export async function loadE22Layer(link: E22ScanLink, layer: E22Layer, stepM: nu
   switch (layer.kind) {
     case 'triangle-mesh':
       object = makePly(await assetBytes(link, layer.geometryUri, signal), color, order); break;
+    case 'point-cloud':
+      object = makePointCloud(await assetBytes(link, layer.geometryUri, signal), color, order); break;
     case 'named-glb': {
       const bytes = await assetBytes(link, layer.geometryUri, signal);
       const manager = new THREE.LoadingManager();
@@ -346,7 +399,7 @@ export async function loadE22Layer(link: E22ScanLink, layer: E22Layer, stepM: nu
       object = makeVoxelInstances(chooseGrid(data, stepM, layer.kind === 'packed-surface-grid'), color, order);
     }
   }
-  const result = own(object);
+  const result = own(object, E22_VOXEL_GRID_KINDS.has(layer.kind) ? (object.userData.totalCells as number) : undefined);
   result.setOpacity(layer.visual.opacity);
   return result;
 }

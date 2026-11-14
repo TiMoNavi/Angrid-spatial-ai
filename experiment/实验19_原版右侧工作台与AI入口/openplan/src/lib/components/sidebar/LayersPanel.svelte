@@ -1,5 +1,5 @@
 <script lang="ts">
-  let { embedded = false }: { embedded?: boolean } = $props();
+  let { embedded = false, mode = '2d' }: { embedded?: boolean; mode?: '2d' | '3d' } = $props();
   import { t, locale } from '$lib/i18n';
   import { furnitureName, customModelName } from '$lib/i18n/furnitureNames';
   import { entourageLabels } from '$lib/i18n/entourageLabels';
@@ -70,7 +70,7 @@
     });
 
     cats.push({
-      key: 'furniture', label: $t('layers.furniture'), icon: '🪑',
+      key: 'furniture', label: mode === '3d' ? '编辑器 3D 家具模型' : $t('layers.furniture'), icon: '🪑',
       items: floor.furniture.map((fi) => {
         const cat = getCatalogItem(fi.catalogId);
         return { id: fi.id, label: customModelName(fi, $currentProject) ?? furnitureName(fi.catalogId, $locale), icon: cat?.icon ?? '📦' };
@@ -137,7 +137,8 @@
       });
     }
 
-    return cats;
+    // Keep every native 3D furniture model beside the imported GLB/model voxel controls.
+    return mode === '3d' ? [...cats.filter(cat => cat.key === 'furniture'), ...cats.filter(cat => cat.key !== 'furniture')] : cats;
   });
 </script>
 
@@ -151,6 +152,9 @@
   <div class="flex-1 min-h-0 overflow-y-auto">
     <E22ScanLayers />
     {#each categories as cat}
+      {#if mode === '3d' && cat.key === 'furniture'}
+        <div class="border-t border-[#c6ab72]/35 bg-[#24302d] px-3 py-2 text-[11px] font-semibold tracking-wide text-[#e9d5a7]">3D 模型</div>
+      {/if}
       <div class="border-b border-gray-50 relative">
         <!-- Category header -->
         <button
@@ -191,6 +195,7 @@
           {/if}
         {/if}
       </div>
+      {#if mode === '3d' && cat.key === 'furniture'}<E22ScanLayers modelOnly />{/if}
     {/each}
     {#if rooms.length}
       <div class="border-b border-gray-100">

@@ -9,15 +9,12 @@ const row = (id: string, group: string, renderable = true): E22Layer => ({
   visual: { visible: false, opacity: .25, color: '#ffffff', wireframe: false },
 });
 
-it('keeps every renderable layer inside its manifest group and prioritizes the active mode', () => {
+it('keeps all scan and model layers in one ordered, independently visible list', () => {
   const layers = [row('raw', 'scan'), row('floor-plan', 'plan', false), row('structure', 'structure'),
     row('obb', 'furniture'), row('model', 'model'), row('unknown', 'review'), row('aabb', 'furniture')];
-  expect(groupE22RenderableLayers(layers, 'scan-evidence').map(group => group.id)).toEqual([
+  expect(groupE22RenderableLayers(layers).map(group => group.id)).toEqual([
     'structure', 'scan', 'furniture', 'review', 'model',
   ]);
-  expect(groupE22RenderableLayers(layers, 'model-voxel').map(group => group.id)).toEqual([
-    'structure', 'model', 'scan', 'furniture', 'review',
-  ]);
-  expect(groupE22RenderableLayers(layers, 'scan-evidence').find(group => group.id === 'furniture')?.layers.map(layer => layer.id))
+  expect(groupE22RenderableLayers(layers).find(group => group.id === 'furniture')?.layers.map(layer => layer.id))
     .toEqual(['obb', 'aabb']);
 });

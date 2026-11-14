@@ -17,6 +17,12 @@ Office 2 复扫在实验 13 完成独立导入后，用户指出：未归属观�
 
 当前 `prepare_candidates.py` 钉住这份 Office 2 复扫的源哈希、照片命中面和空间范围，只证明这条补救路线在本案例可执行；它不是对所有房间自动识别沙发的通用模型。尤其无照片种子的邻近连通片只能作为低置信候选，不能并入已确认家具。
 
+## 当前导入入口的边界
+
+编辑器顶栏仍有原版平面项目／RoomPlan JSON 导入；它的 ZIP 分支只读取恰好一个 room.json。3D Model Anything 的完整 iPhone 导出包含 Room/manifest.json、Room/rooms/room-0.json、PLY、深度与照片，没有这个 room.json。把它丢给顶栏不会生成扫描图层，现会明确拒绝并指向 [实验 13 的离线导入命令](../实验13_家具补形与未归属细分/README.md)。页面的“恢复完整实验工程”只恢复当前扫描身份下的平面与用户体素设计，扫描资产仍须已在本机准备。
+
+当前 Office 2 复扫依次由实验 13 的 import_office2_rescan.py 执行 base、depth、fusion、classify，再由本实验 prepare_candidates.py 生成待复核层；后者钉住该包的源哈希、照片锚点和 ROI，换一份扫描不能直接复用。这些是本地脚本调用原版 scan-to-threejs 工具，不是页面已自动调用 Codex 的 skill 流程。
+
 ## 实验边界
 
 - 保留实验 9 与 13 的 derived-v1 原始分类账本和全部源面 ID；新结果写入 office-2-rescan/derived-v2，并由实验 14 的独立查看器加载。

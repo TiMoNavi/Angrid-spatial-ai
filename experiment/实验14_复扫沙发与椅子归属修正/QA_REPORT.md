@@ -28,10 +28,12 @@
 
 实验 14 页面在 `http://127.0.0.1:5196/editor?scan=office-2-rescan`。项目 ID、IndexedDB、体素设计 localStorage 和独立 `/voxel` 缓存均使用 experiment14 命名空间；实验 13 的设计不会被读写。七个 `derived-v2` 图层独立开关，并有各自的透明度、剖切和线框。来源校验覆盖 scanId、room-local-m、transformHash、converted、裁切 PLY、v1 清单、复核报告及每个图层的资产 SHA256。私有复核报告端点返回 HTTP 200。
 
-默认 `review` 预设在 20 cm 显示平整结构、沙发核心、椅子连续面、椅桌冲突及未归属物体余量，共 5 层、1,844 条格记录。原 v1 unknown 总层默认关闭，选择“边界与未知”即可显示，切回 `review` 可恢复。原 v1 unknown 为 1,667 格；v2 结构、开口、物体余量在 20 cm 分别为 1,143、274、770 格。不同源面桶可落入同一粗格，这些格数不能相加与原总层直接比较。
+当前首次打开采用安全的“全局体素 · 规整与线框”：仅自动加载 TSDF 融合网格、平整结构、家具几何修正和 OBB 线框四层；原始 PLY 表面格、大件家具观察格、沙发／椅子复核格等高密度层由用户逐层开启。TSDF 初始 100% 不透明度，所有扫描体素方块与用户设计盒初始 10%；线框独立保留可见。左侧有“部分开启”勾选和“全关”，不提供一键全选。原 v1 unknown 总层默认关闭，选择“边界与未知”即可显示；“沙发与椅子复核”预设仍可一键切换。原 v1 unknown 为 1,667 格；v2 结构、开口、物体余量在 20 cm 分别为 1,143、274、770 格。不同源面桶可落入同一粗格，这些格数不能相加与原总层直接比较。
 
-**邻近大件扩展不等于已确认沙发。** 扩展的第三连通组件有 7,843 个源面，不含五个直接照片射线种子；照片投影仅提供辅助支持，尚需人工复核。查看器将其命名为“邻近大件待复核面体素”，默认关闭，手动开启时初始透明度 24%。照片锚定的沙发核心在默认斜视图中可见，位于房间中前部，未被半透明结构层遮挡；高斯层没有可用产物，也未在默认预设启用。
+**邻近大件扩展不等于已确认沙发。** 扩展的第三连通组件有 7,843 个源面，不含五个直接照片射线种子；照片投影仅提供辅助支持，尚需人工复核。查看器将其命名为“邻近大件待复核面体素”，默认关闭，手动开启时初始透明度 10%。切到“沙发与椅子复核”预设时，照片锚定的沙发核心在斜视图中可见，位于房间中前部；高斯层没有可用产物，也未在默认预设启用。
 
-Edge 固定斜视截图保存在私有路径 `../.private/office-2-rescan/qa/`：`experiment14-edge-evidence.png`（原始 PLY）、`experiment14-edge-edit.png`（v1 分类）、`experiment14-edge-review.png`（v2 默认复核）、`experiment14-edge-conflict.png`（v1 冲突和 unknown），另有 `experiment14-edge-review-default.png`。这些截图和源扫描不进入 Git。Edge 验证七层资源、结构/开口余量开关、沙发层线框与 2.5 cm 显示（沙发两层共 10,269 格）、2D↔3D、体素盒放置及独立存储，页面错误和扫描资源失败均为 0。
+Edge 固定斜视截图保存在私有路径 `../.private/office-2-rescan/qa/`：`experiment14-edge-evidence.png`（原始 PLY）、`experiment14-edge-edit.png`（旧 v1 分类）、`experiment14-edge-review.png`（v2 复核预设）、`experiment14-edge-conflict.png`（v1 冲突和 unknown），另有新默认的 `experiment14-edge-regular-default.png` 与全关的 `experiment14-edge-layers-off.png`。这些截图和源扫描不进入 Git。Edge 验证七层资源、结构/开口余量开关、沙发层线框与 2.5 cm 显示（沙发两层共 10,269 格）、2D↔3D、体素盒放置及独立存储，页面错误和扫描资源失败均为 0。新增的默认值回归实测首次仅开启 fusion/obb/structure/corrected 四层；“全关”后零扫描证据层，“部分开启”恢复该四层，未出现页面错误或扫描请求失败。
 
-完整工程的实际导出、再导入已通过 Edge：文件名 `office-2-rescan-experiment14-project.json`，包含 1 个测试设计盒、7 个 v2 图层引用和 4 个来源文件引用；恢复后仍有 1 个设计盒。导出采用便携格式要求的 `measured` 来源枚举，同时原始 v2 清单继续保留更具体的候选说明。`NODE_ENV=production npm run check` 为 0 错误、0 警告；`npm test` 为 5 文件、39 测试通过；生产构建成功。
+TSDF 保持 100% 时，10% 填充的沙发核心、椅子延续和椅桌冲突格原本难以从融合网格上辨认。复核预设现在为这三类观察格另绘制有限数量的细线轮廓，深度测试关闭、绘制次序在 TSDF 之后；填充仍是 10%，轮廓不代表完整或实心家具。Edge 实测切换复核预设后六层加载、三色候选轮廓可分辨，另在 TSDF 上摆放 12 格用户盒，盒填充 10% 且选中轮廓清晰。截图为私有 `experiment14-edge-review-tsdf100-outlines.png` 和 `experiment14-edge-designbox-tsdf100-outlines.png`。细格轮廓单层最多抽绘 1,800 格以限制渲染负担；该回归没有页面错误。
+
+完整工程的实际导出、再导入已通过 Edge：文件名 `office-2-rescan-experiment14-project.json`，包含 1 个测试设计盒、7 个 v2 图层引用和 4 个来源文件引用；恢复后仍有 1 个设计盒。导出采用便携格式要求的 `measured` 来源枚举，同时原始 v2 清单继续保留更具体的候选说明。`NODE_ENV=production npm run check` 为 0 错误、0 警告；`npm test` 为 6 文件、42 测试通过；生产构建成功。

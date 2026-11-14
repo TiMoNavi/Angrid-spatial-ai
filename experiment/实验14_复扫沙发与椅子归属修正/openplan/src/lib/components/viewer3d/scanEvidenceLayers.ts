@@ -23,6 +23,15 @@ interface DecodedGrid { stepM: number; cells: EvidenceCell[]; recordCount: numbe
 // Related warm tones distinguish furniture instances without confusing them with the mint structure shell.
 const COLORS = [0xd69c68, 0xb99280, 0xe3b682, 0xc8aa86, 0xdab4a2];
 const MAX_DISPLAY_CELLS = 50000;
+const MAX_REVIEW_OUTLINE_CELLS = 1800;
+export const REVIEW_OUTLINE_LAYERS = new Set<EvidenceLayerId>(['sofaCore', 'chairContinuation', 'chairTableReview']);
+// Filled surface/volume cells start faint, independent of the confidence of
+// their source. The TSDF mesh is a separate reference surface.
+const VOXEL_LAYER_IDS = new Set<EvidenceLayerId>([
+  'rawSurface', 'structure', 'furniture', 'corrected', 'conflict', 'unknown', 'clutter',
+  'sofaCore', 'sofaCandidate', 'chairContinuation', 'chairTableReview',
+  'unknownStructureResidual', 'unknownOpeningResidual', 'unknownObjectResidual'
+]);
 /** Background evidence first, classified geometry second, diagnostic wireframes last. */
 export const EVIDENCE_RENDER_ORDER: Record<EvidenceLayerId, number> = {
   splat: 0, raw: 1, depth: 2, fusion: 3, rawSurface: 4,
@@ -200,15 +209,16 @@ export function setLayerDisplay(handle: EvidenceLayerHandle, options: { opacity:
       }
       object.visible = selected == null || metadata.convertedIndex === undefined || metadata.convertedIndex === selected || metadata.convertedIndices?.includes(selected);
     }
+    if (metadata.reviewContour) object.visible = object.visible && !!options.wireframe;
     const priority = EVIDENCE_RENDER_ORDER[handle.group.userData.layerId as EvidenceLayerId] ?? 0;
     object.renderOrder = object instanceof THREE.LineSegments ? 60 + priority : priority;
     for (const material of materials(object)) {
-      material.opacity = opacity * (material.userData.opacityScale ?? 1);
+      material.opacity = Math.min(1, opacity * (material.userData.opacityScale ?? 1));
       // Evidence is visual context, never an occluding depth mask over editable volumes.
       material.transparent = true;
       material.depthWrite = false;
       if (material instanceof THREE.MeshStandardMaterial) {
-        material.wireframe = !!options.wireframe;
+        material.wireframe = !!options.wireframe && !REVIEW_OUTLINE_LAYERS.has(handle.group.userData.layerId as EvidenceLayerId);
         material.depthTest = !options.wireframe;
         material.emissive.setHex(options.wireframe ? 0x555555 : 0);
       }
@@ -281,7 +291,7 @@ export class ScanEvidenceScene {
       return { index, convertedIndex: index, objectId: row?.objectId || `${this.scanId}:converted:${index}`, category: object.category, faceCount: row?.faceCount, watertight: row?.watertight, mappingState: row?.mappingState || 'unverified' };
     });
     this.layers = definitions.map(definition => {
-      const meta: EvidenceLayerMeta = { id: definition.id, title: definition.title, kind: definition.kind, available: false, reason: '', provenance: definition.provenance, clipped: definition.clipped !== false, defaultOpacity: definition.opacity ?? 0.9, color: '#' + definition.color.toString(16).padStart(6, '0') };
+      const meta: EvidenceLayerMeta = { id: definition.id, title: definition.title, kind: definition.kind, available: false, reason: '', provenance: definition.provenance, clipped: definition.clipped !== false, defaultOpacity: definition.id === 'fusion' ? 1 : VOXEL_LAYER_IDS.has(definition.id) ? 0.1 : definition.opacity ?? 0.9, color: '#' + definition.color.toString(16).padStart(6, '0') };
       if (definition.path) { meta.available = !!cap.assets[definition.path]?.available; meta.reason = meta.available ? '原始证据，独立按需加载' : cap.assets[definition.path]?.reason || '缺少输入'; }
       if (definition.id === 'rawSurface' && this.scanId === 'office-1') { meta.title = 'TSDF 表面格（降级）'; meta.provenance = 'measured · fused surface'; meta.reason = 'Office 1 缺原始 LiDAR PLY，使用融合表面缓存'; }
       if (definition.id === 'roomplan') { meta.available = this.room.walls.length > 0; meta.reason = '仅原有有限墙段与开口；缺失边界保持未知'; meta.total = this.room.walls.length; }
@@ -338,7 +348,33 @@ export class ScanEvidenceScene {
     });
     mesh.userData = { layerId: group.userData.layerId, stepM: decoded.stepM, cells, instanceCells: cells, baseMatrices, cellIndices: indices, candidateOwners: [...new Set(cells.flatMap(cell => cell.candidateOwners || cell.ownerIds || []))] };
     mesh.instanceMatrix.needsUpdate = true; if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
-    mesh.computeBoundingSphere(); group.add(mesh); return cells.length;
+    mesh.computeBoundingSphere(); group.add(mesh);
+    // A 10%-filled review cell disappears against a 100% TSDF mesh. Keep its
+    // measured-surface volume faint, but trace a bounded set of box contours
+    // above the evidence mesh so a candidate remains inspectable.
+    if (REVIEW_OUTLINE_LAYERS.has(group.userData.layerId as EvidenceLayerId) && cells.length) {
+      const box = new THREE.BoxGeometry(1, 1, 1);
+      const template = new THREE.EdgesGeometry(box); box.dispose();
+      const edge = template.getAttribute('position');
+      const count = Math.min(cells.length, MAX_REVIEW_OUTLINE_CELLS);
+      const positions = new Float32Array(count * edge.count * 3);
+      let offset = 0;
+      for (let i = 0; i < count; i++) {
+        const cell = cells[Math.floor(i * cells.length / count)];
+        const size = decoded.stepM * .92;
+        for (let j = 0; j < edge.count; j++) {
+          positions[offset++] = cell.center[0] + edge.getX(j) * size;
+          positions[offset++] = cell.center[1] + edge.getY(j) * size;
+          positions[offset++] = cell.center[2] + edge.getZ(j) * size;
+        }
+      }
+      template.dispose();
+      const outline = new THREE.LineSegments(new THREE.BufferGeometry().setAttribute('position', new THREE.BufferAttribute(positions, 3)), new THREE.LineBasicMaterial({ color, transparent: true, depthTest: false, depthWrite: false }));
+      outline.name = '待复核观察格轮廓'; outline.userData = { reviewContour: true };
+      (outline.material as THREE.LineBasicMaterial).userData.opacityScale = 7;
+      group.add(outline);
+    }
+    return cells.length;
   }
   async loadLayer(id: EvidenceLayerId, stepM = 0.2, signal?: AbortSignal): Promise<EvidenceLayerHandle> {
     const meta = this.layers.find(row => row.id === id), definition = definitions.find(row => row.id === id);

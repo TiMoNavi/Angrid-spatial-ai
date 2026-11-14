@@ -9,7 +9,7 @@
   import { base } from '$app/paths';
   import { VoxelDocument } from '../../../../../voxel-core/index';
   import { scanRegistration, type RegisteredScanRoom } from './scanVoxelLayer';
-  import { ScanEvidenceScene, EVIDENCE_RENDER_ORDER, setLayerDisplay, type EvidenceLayerMeta, type EvidenceLayerHandle, type EvidenceLayerId, type EvidenceObjectMeta } from './scanEvidenceLayers';
+  import { ScanEvidenceScene, EVIDENCE_RENDER_ORDER, REVIEW_OUTLINE_LAYERS, setLayerDisplay, type EvidenceLayerMeta, type EvidenceLayerHandle, type EvidenceLayerId, type EvidenceObjectMeta } from './scanEvidenceLayers';
   import StudioLayerKey from '$lib/components/voxel-studio/StudioLayerKey.svelte';
   import { visibleScanTargets, scanHitOwners as hitOwners } from './scanPicking';
   import { makeDesignEnvelope, parseDesignEnvelope, makeExperimentPackage, parseExperimentPackage, designStorageKey, type ScanIdentity } from '$lib/utils/scanDesignPackage';
@@ -133,11 +133,12 @@
   let manifestWarnings = $state<string[]>([]);
   let userVisible = $state(true);
   let designFocus = $state(true);
-  let userOpacity = $state(1);
+  let userOpacity = $state(.1);
   let userClipped = $state(false);
   let userGridEdgesVisible = $state(true);
   let userColorMode = $state<'semantic' | 'height'>('semantic');
   function effectiveEvidenceOpacity(row: LayerRow): number {
+    if (row.id === 'fusion') return row.opacity;
     return designFocus && userVisible && editedObjects.length ? Math.min(row.opacity, .18) : row.opacity;
   }
   let heightHeatMinM = $state(0);
@@ -247,9 +248,11 @@
       voxelGroup = new THREE.Group();
       voxelGroup.name = '独立扫描证据与分类图层';
       scene.add(voxelGroup);
-      layerRows = metadata.layers.map(row => ({ ...row, visible: false, opacity: row.defaultOpacity, clipping: row.clipped, wireframe: false, busy: false, total: row.total ?? 0, drawn: 0, error: '' }));
+      layerRows = metadata.layers.map(row => ({ ...row, visible: false, opacity: row.defaultOpacity, clipping: row.clipped, wireframe: REVIEW_OUTLINE_LAYERS.has(row.id), busy: false, total: row.total ?? 0, drawn: 0, error: '' }));
       loadEditedDocument();
-      await applyPreset(scan === 'office-1' ? 'fusion' : scan === 'office-2-rescan' && metadata.layers.some(row => row.id === 'sofaCore' && row.available) ? 'review' : 'edit');
+      // First paint stays cheap: the fused scan plus a few rectified boxes and
+      // existing OBB wireframes. Review-only and raw surface grids remain opt-in.
+      await applyPreset(scan === 'office-1' ? 'fusion' : 'edit');
       if (controller.signal.aborted || serial !== loadSerial) return;
       scanStageReady = true;
       wallGroup.visible = buildingVisible;
@@ -300,6 +303,7 @@
   async function toggleEvidence(id: EvidenceLayerId, checked: boolean) {
     const row = layerRows.find(item => item.id === id);
     if (!row || !row.available) return;
+    preset = 'custom';
     row.visible = checked;
     if (!checked) {
       layerControllers.get(id)?.abort(); layerControllers.delete(id); row.busy = false;
@@ -310,13 +314,13 @@
   async function applyPreset(value: string) {
     preset = value;
     const desired: Record<string, EvidenceLayerId[]> = {
-      edit: ['structure', 'furniture', 'corrected'],
+      edit: ['fusion', 'structure', 'corrected', 'obb'],
       evidence: ['raw', 'roomplan', 'obb'],
       slices: ['slice', 'obb', 'aabb'],
       comparison: ['rawSurface', 'structure', 'furniture'],
       fusion: currentScan === 'office-1' ? ['fusion'] : ['fusion', 'depth'],
       conflict: ['structure', 'furniture', 'conflict', 'unknown'],
-      review: ['structure', 'sofaCore', 'chairContinuation', 'chairTableReview', 'unknownObjectResidual']
+      review: ['fusion', 'structure', 'sofaCore', 'chairContinuation', 'chairTableReview', 'unknownObjectResidual']
     };
     const active = new Set(desired[value] || desired.edit);
     for (const row of layerRows) {
@@ -326,6 +330,15 @@
     }
     await Promise.all(layerRows.filter(row => row.visible).map(row => ensureLayer(row.id)));
     if (studioAppearance) scanMotionRevision++;
+    summarizeLayers(); markSceneDirty();
+  }
+  function clearEvidenceLayers() {
+    preset = 'custom';
+    for (const row of layerRows) {
+      row.visible = false; row.busy = false;
+      layerControllers.get(row.id)?.abort(); layerControllers.delete(row.id);
+      const handle = layerHandles.get(row.id); if (handle) handle.group.visible = false;
+    }
     summarizeLayers(); markSceneDirty();
   }
   async function changeGridStep() {
@@ -3127,7 +3140,7 @@
       <button class="rounded bg-white/10 px-2 py-1.5 hover:bg-white/20" onclick={() => frameVoxelLayer()}>定位房间</button>
     </div>
     <div class="grid grid-cols-2 gap-2">
-      <label class="grid gap-1">查看预设<select aria-label="查看预设" bind:value={preset} onchange={() => applyPreset(preset)} class="rounded bg-slate-700 p-1.5"><option value="edit">平整结构与家具</option><option value="evidence">原始扫描</option><option value="slices">家具切片</option><option value="comparison">体素对照</option><option value="fusion">融合对照</option><option value="conflict">边界与未知</option>{#if currentScan === 'office-2-rescan'}<option value="review">沙发与椅子复核</option>{/if}</select></label>
+      <label class="grid gap-1">查看预设<select aria-label="查看预设" bind:value={preset} onchange={event => applyPreset(event.currentTarget.value)} class="rounded bg-slate-700 p-1.5"><option value="edit">全局体素 · 规整与线框</option><option value="evidence">原始扫描</option><option value="slices">家具切片</option><option value="comparison">体素对照</option><option value="fusion">融合对照</option><option value="conflict">边界与未知</option>{#if currentScan === 'office-2-rescan'}<option value="review">沙发与椅子复核</option>{/if}<option value="custom" disabled>自定义选层</option></select></label>
       <label class="grid gap-1">显示格长<select aria-label="格子边长" bind:value={scanStep} onchange={changeGridStep} class="rounded bg-slate-700 p-1.5"><option value="0.2">20 厘米</option><option value="0.1">10 厘米</option><option value="0.05">5 厘米</option><option value="0.025">2.5 厘米</option></select></label>
     </div>
     <div class="mt-2 flex items-center gap-2">
@@ -3147,6 +3160,12 @@
     </div>
     <details class="mt-3 border-t border-white/20 pt-2">
       <summary class="cursor-pointer py-1 font-semibold">逐层开关、透明度与来源（{layerRows.length + 1} 层）</summary>
+      <div role="group" aria-label="扫描证据批量选择" class="mt-2 flex flex-wrap items-center gap-2 rounded border border-white/15 bg-white/[.04] p-2">
+        <label class="flex items-center gap-1.5"><input data-testid="scan-layer-partial" type="checkbox" aria-label="扫描证据部分开启" checked={layerRows.some(row => row.visible && row.available)} onchange={event => { if (event.currentTarget.checked) void applyPreset('edit'); else clearEvidenceLayers(); }} />部分开启</label>
+        <button data-testid="scan-layer-off" type="button" class="rounded border border-white/20 px-2 py-1 hover:bg-white/10" onclick={clearEvidenceLayers}>全关</button>
+        <span class="ml-auto text-[11px] text-slate-300">{layerRows.filter(row => row.visible && row.available).length}/{layerRows.filter(row => row.available).length} 层开启</span>
+      </div>
+      <p class="mt-1 text-[11px] text-slate-400">部分开启只载入 TSDF、规整结构／家具修正与 OBB 线框；高密度扫描和细格候选请逐层开启。体素方块初始 10%，TSDF 初始 100%。</p>
       {#if editedObjects.length}
         <div data-testid="scan-display-priority" role="group" aria-label="扫描与设计的显示侧重" class="scan-stage-switch">
           <button type="button" aria-pressed={designFocus} onclick={() => { designFocus = true; updateLayerDisplays(); }}>设计优先</button>
@@ -3161,7 +3180,7 @@
             <p class="mt-1 break-words text-[11px] text-slate-300">{row.provenance}{#if row.total > 0} · 全量 {row.total.toLocaleString()} / 抽显 {row.drawn.toLocaleString()}{/if}</p>
             {#if row.available}
               <div class="mt-1 flex items-center gap-2"><input class="min-w-0 flex-1" type="range" min="0" max="1" step="0.05" aria-label={row.title + '透明度'} bind:value={row.opacity} oninput={updateLayerDisplays} /><span class="min-w-10 text-right" title={'设定 ' + Math.round(row.opacity * 100) + '%'}>{Math.round(effectiveEvidenceOpacity(row) * 100)}%</span><label class="flex items-center gap-1"><input type="checkbox" aria-label={row.title + '参与剖切'} bind:checked={row.clipping} onchange={updateLayerDisplays} />剖切</label></div>
-              {#if gridLayer(row.id)}<label class="mt-1 flex items-center gap-1 text-[11px] text-slate-300"><input type="checkbox" aria-label={row.title + '线框'} bind:checked={row.wireframe} onchange={updateLayerDisplays} />线框显示；透明度和剖切仍独立可调</label>{/if}
+              {#if gridLayer(row.id)}<label class="mt-1 flex items-center gap-1 text-[11px] text-slate-300"><input type="checkbox" aria-label={row.title + '线框'} bind:checked={row.wireframe} onchange={updateLayerDisplays} />{REVIEW_OUTLINE_LAYERS.has(row.id) ? '观察格轮廓；填充仍保留' : '线框显示；透明度和剖切仍独立可调'}</label>{/if}
             {/if}
             {#if row.reason}<p class="mt-1 text-[11px] text-amber-200">{row.reason}</p>{/if}
             {#if row.error}<p role="alert" class="mt-1 text-[11px] text-rose-200">{row.error}</p>{/if}

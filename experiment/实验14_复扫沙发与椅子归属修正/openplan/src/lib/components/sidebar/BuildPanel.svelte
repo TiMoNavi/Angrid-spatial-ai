@@ -557,6 +557,7 @@
           <div class="text-left">
             <div class="font-medium">{$t('buildTools.roomplan')}</div>
             <div class="text-xs text-gray-400">{$t('buildTools.roomplanHelp')}</div>
+            <div class="text-[11px] text-gray-400" lang="zh-CN">RoomPlan 平面 JSON / 单 room.json ZIP</div>
           </div>
         </button>
 

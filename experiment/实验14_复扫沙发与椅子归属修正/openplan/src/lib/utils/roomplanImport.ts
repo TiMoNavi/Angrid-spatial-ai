@@ -842,11 +842,15 @@ export function importRoomPlan(jsonData: any, options: RoomPlanImportOptions = r
  */
 export async function extractRoomJsonFromZip(zipFile: File): Promise<any> {
   const JSZip = (await import('jszip')).default;
-  const zip = await JSZip.loadAsync(zipFile);
+  const zip = await JSZip.loadAsync(await zipFile.arrayBuffer());
 
   const files = Object.values(zip.files).filter(file => !file.dir);
   if (files.some(file => /(^|\/)plan\.json$/i.test(file.name))) {
     throw new Error('This dataset contains an edited iPhone plan. On iPhone, choose Export Editable Plan (JSON) to import its edits; the room.json in this ZIP is the original scan.');
+  }
+  if (files.some(file => /(^|\/)Room\/manifest\.json$/i.test(file.name)) &&
+      files.some(file => /(^|\/)Room\/rooms\/room-\d+\.json$/i.test(file.name))) {
+    throw new Error('This is a full 3D Model Anything iPhone scan ZIP. This menu imports only plan/RoomPlan JSON or a ZIP containing room.json; it cannot process the scan PLY, depth and photos. For the current Office 2 rescan, follow experiment/实验13_家具补形与未归属细分/README.md offline. No project was imported.');
   }
   const captures = files.filter(file => /(^|\/)room\.json$/i.test(file.name));
   if (captures.length !== 1) {

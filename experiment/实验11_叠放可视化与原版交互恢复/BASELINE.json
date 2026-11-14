@@ -1,0 +1,12 @@
+{
+  "experiment": 11,
+  "copiedFromCommit": "04e6b48",
+  "copiedFromPath": "experiment/实验10_原版界面分层体素整合",
+  "upstreamRepository": "https://github.com/laanlabs/openPlan3D",
+  "upstreamRevision": "b0727b54da5f0f642722dcc88cc52d7236fadc9e",
+  "license": "MIT; openplan/LICENSE",
+  "scope": "Independent experiment; scan input stays under experiment/.private",
+  "protectedReferences": ["reference/openPlan3D", "reference/3d-model-anything"],
+  "visualSource": "https://threeui.com/hero/cathode-page/studio",
+  "visualSourcePolicy": "Verify license before distributing any complete ThreeUI snapshot; private snapshot is not part of this experiment commit"
+}

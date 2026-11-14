@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 from pathlib import Path, PurePosixPath
 import stat
 from zipfile import BadZipFile, ZipFile, ZipInfo
@@ -81,6 +82,36 @@ def read_json(archive: ZipFile, info: ZipInfo) -> dict:
     return data
 
 
+def indexed_asset_count(archive: ZipFile, info: ZipInfo | None,
+                        prefix: str, members: dict[str, ZipInfo]) -> int:
+    if info is None:
+        return 0
+    if info.file_size > MAX_JSON_BYTES:
+        raise BundleError("ZIP asset index exceeds the JSON limit")
+    try:
+        rows = json.loads(archive.read(info).decode("utf-8"))
+    except (UnicodeError, json.JSONDecodeError) as exc:
+        raise BundleError("ZIP asset index is invalid JSON") from exc
+    if not isinstance(rows, list) or any(not isinstance(row, dict) for row in rows):
+        raise BundleError("ZIP asset index must be an array of objects")
+    def finite_number(value):
+        if not isinstance(value, (int, float)) or isinstance(value, bool):
+            return False
+        try:
+            return math.isfinite(value)
+        except (OverflowError, ValueError):
+            return False
+    def numeric(values: object, count: int) -> bool:
+        return (isinstance(values, list) and len(values) == count and
+                all(finite_number(n) for n in values))
+    return sum(
+        relative_asset(prefix, row.get("file"), members) is not None and
+        numeric(row.get("transform"), 16) and numeric(row.get("intrinsics"), 9) and
+        all(isinstance(row.get(key), int) and not isinstance(row[key], bool)
+            and row[key] > 0 for key in ("width", "height"))
+        for row in rows)
+
+
 def relative_asset(prefix: str, raw: object, members: dict[str, ZipInfo]) -> str | None:
     if isinstance(raw, dict):
         raw = raw.get("file")
@@ -114,7 +145,8 @@ def probe(path: Path) -> dict:
                 prefix = ""
             rooms = []
             for room in manifest["rooms"]:
-                if not isinstance(room, dict) or not isinstance(room.get("index"), int):
+                if (not isinstance(room, dict) or not isinstance(room.get("index"), int)
+                        or isinstance(room["index"], bool)):
                     raise BundleError("Manifest room index is missing")
                 room_json = relative_asset(prefix, room.get("file"), members)
                 mesh = relative_asset(prefix, room.get("mesh"), members)
@@ -128,10 +160,13 @@ def probe(path: Path) -> dict:
                 raise BundleError("Manifest contains duplicate room indices")
             photo_index = relative_asset(prefix, manifest.get("photos"), members)
             depth_index = relative_asset(prefix, manifest.get("depthFrames"), members)
+            photo_available = indexed_asset_count(archive, members.get(photo_index), prefix, members)
+            depth_available = indexed_asset_count(archive, members.get(depth_index), prefix, members)
             mesh = relative_asset(prefix, manifest.get("mesh"), members)
+            global_mesh_ply = mesh if mesh and mesh.lower().endswith(".ply") else None
             capability = {"roomPlan": bool(rooms),
-                          "rawMeshPly": any(row["rawMeshPly"] for row in rooms) or bool(mesh and mesh.lower().endswith(".ply")),
-                          "posedPhotos": bool(photo_index), "depthFrames": bool(depth_index),
+                          "rawMeshPly": any(row["rawMeshPly"] for row in rooms) or bool(global_mesh_ply),
+                          "posedPhotos": photo_available > 0, "depthFrames": depth_available > 0,
                           "appleRoomBuilderData": any(row["capturedRoomData"] for row in rooms)}
             warnings = [f"Missing {name}; dependent stages must be disabled" for name, available in capability.items() if not available]
             digest = sha256(path)
@@ -139,11 +174,16 @@ def probe(path: Path) -> dict:
                     "zipSha256": digest, "zipBytes": path.stat().st_size,
                     "entryCount": len(archive.infolist()), "manifestPath": manifest_path,
                     "format": manifest.get("format"), "rooms": rooms,
+                    "globalRawMeshPly": global_mesh_ply,
                     "photoIndex": photo_index, "depthIndex": depth_index,
                     "photoCountReported": manifest.get("photoCount"),
                     "depthFrameCountReported": manifest.get("depthFrameCount"),
                     "capabilities": capability, "warnings": warnings,
-                    "strategy": "apple-raw-data-available" if capability["appleRoomBuilderData"] else "own-ply-photo-depth-segmentation"}
+                    "strategy": ("apple-raw-data-available" if capability["appleRoomBuilderData"] else
+                                 "own-ply-photo-depth-segmentation" if capability["rawMeshPly"] and
+                                 capability["posedPhotos"] and capability["depthFrames"] else
+                                 "ply-only-degraded" if capability["rawMeshPly"] else
+                                 "roomplan-only-degraded")}
     except BadZipFile as exc:
         raise BundleError("Invalid ZIP archive") from exc
 

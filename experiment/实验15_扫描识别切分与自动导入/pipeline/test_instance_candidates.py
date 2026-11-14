@@ -18,6 +18,7 @@ from instance_candidates import (
     make_instance_ledger,
     object_box_mask,
     parse_pending_photo_hints,
+    parse_projected_photo_proposals,
     run,
     stable_id,
     validate_v1_assignments,
@@ -137,6 +138,46 @@ class InstanceCandidateTests(unittest.TestCase):
             path.write_text(json.dumps(payload))
             with self.assertRaises(ValueError):
                 parse_pending_photo_hints(path, "synthetic", {"photo.jpg"})
+
+    def test_projected_photo_faces_are_review_only_even_inside_old_owner(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "photo-face-proposals.json"
+            buckets = {"one-owner": np.array([0]), "unknown": np.array([1]),
+                       "structure": np.array([2])}
+            proposal = {"instanceId": "photo:1", "reviewState": "unreviewed",
+                        "ownershipState": "unchanged-v1", "categoryCandidates": ["chair"],
+                        "sourceFaceIds": [0], "sourceFaceCount": 1,
+                        "existingOwnerConflictSourceFaceIds": [0],
+                        "existingOwnerConflictFaceCount": 1}
+            data = {"schemaVersion": 1, "algorithmVersion": "photo-source-face-v1",
+                    "scanId": "synthetic", "sourceHash": "abc",
+                    "transformHash": "identity", "sourceFaceCount": 3,
+                    "originalOwnerAssignmentsPreserved": True,
+                    "inputHashes": {"raw-mesh.ply": "abc"}, "proposals": [proposal]}
+            path.write_text(json.dumps(data))
+            parsed = parse_projected_photo_proposals(path, "synthetic", "abc",
+                                                      "identity", buckets, 3)
+            ledger = make_instance_ledger(
+                scan_id="synthetic", source_hash="abc", transform_id="identity",
+                vertices=self.vertices, faces=self.faces, classes=np.zeros(3),
+                room={"objects": []}, buckets=buckets, report={"objects": []},
+                raw_room=None, seed_rows=[], seed_hash=None, photo_hints=None,
+                photo_projected=parsed, min_component_faces=100)
+            self.assertEqual(ledger["suggestedExistingOwnerFaceCount"], 1)
+            self.assertEqual(ledger["unknownWithoutProposalFaceCount"], 1)
+            self.assertTrue(ledger["conservation"]["originalOwnerAssignmentsPreserved"])
+            proposal["ownerId"] = "chair:1"
+            path.write_text(json.dumps(data))
+            with self.assertRaises(ValueError):
+                parse_projected_photo_proposals(path, "synthetic", "abc",
+                                                "identity", buckets, 3)
+            del proposal["ownerId"]
+            proposal.update(sourceFaceIds=[2], existingOwnerConflictSourceFaceIds=[],
+                            existingOwnerConflictFaceCount=0)
+            path.write_text(json.dumps(data))
+            with self.assertRaises(ValueError):
+                parse_projected_photo_proposals(path, "synthetic", "abc",
+                                                "identity", buckets, 3)
 
     def test_missing_ply_has_explicit_degraded_ledger(self):
         with tempfile.TemporaryDirectory(dir=EXPERIMENT / ".private") as tmp:

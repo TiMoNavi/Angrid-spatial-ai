@@ -8,6 +8,7 @@ import { resolve, join } from 'node:path';
 import { decodeEvidenceGrid, evidenceCellBelongsTo, safeEvidencePath, ScanEvidenceScene, setLayerDisplay, validateEvidenceManifest, validateReviewManifest, verifyEvidenceBytes } from '../src/lib/components/viewer3d/scanEvidenceLayers';
 import type { RegisteredScanRoom } from '../src/lib/components/viewer3d/scanVoxelLayer';
 import { isAllowedLayerAsset, isLocalLayerClient, layerCapabilities, resolveLayerAsset } from '../src/lib/server/layerAssets';
+import { privateScan, resolvePrivateFile } from '../src/lib/server/scanRegistry';
 
 const matrix = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1.4, 0, 1];
 const room: RegisteredScanRoom = { transform: { worldToRoom: matrix }, polygon: [[0, 0], [2, 0], [2, 2], [0, 2]], walls: [{ a: [0, 0], b: [2, 0], height: 2.5 }], objects: [{ category: 'table', center: [1, .4, 1], size: [1, .8, .6], rotY: 0 }] };
@@ -131,9 +132,68 @@ describe('private API boundaries', () => {
       await expect(resolveLayerAsset(root, 'other', 'converted.json')).rejects.toThrow();
     } finally { await rm(root, { recursive: true, force: true }); }
   });
+  it('opens only converted imports with a matching manifest and original room index', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'e15-imported-assets-'));
+    const id = 'case-office-2-e15', scan = join(root, id);
+    try {
+      await mkdir(join(scan, 'source/Room/rooms'), { recursive: true });
+      const imported = { schemaVersion: 1, kind: 'house-capture-import', scanId: id,
+        assetPaths: { roomPlanJson: 'source/Room/rooms/room-3.json' },
+        converted: { status: 'available', path: 'converted.json' } };
+      await writeFile(join(scan, 'import-manifest.json'), JSON.stringify(imported));
+      await writeFile(join(scan, 'converted.json'), JSON.stringify(room));
+      await writeFile(join(scan, 'source/Room/rooms/room-3.json'), '{}');
+      const entry = await privateScan(root, id);
+      expect(entry.imported?.assetPaths.roomPlanJson).toContain('room-3.json');
+      expect(await resolveLayerAsset(root, id, 'converted.json')).toContain('/case-office-2-e15/converted.json');
+      expect(await resolvePrivateFile(entry.scanRoot, entry.imported!.assetPaths.roomPlanJson!)).toContain('room-3.json');
+      await expect(resolveLayerAsset(root, id, 'source-archive.zip')).rejects.toThrow();
+      await writeFile(join(scan, 'import-manifest.json'), JSON.stringify({ ...imported, converted: { status: 'unavailable' } }));
+      await expect(privateScan(root, id)).rejects.toThrow();
+      await writeFile(join(scan, 'import-manifest.json'), JSON.stringify({ ...imported, scanId: 'other' }));
+      await expect(privateScan(root, id)).rejects.toThrow();
+    } finally { await rm(root, { recursive: true, force: true }); }
+  });
 });
 
 describe('lazy scene integration', () => {
+  it('shows one source-bound AI review grid without accepting candidate owners', async () => {
+    const id = 'case-office-2-e15', sourceHash = 'b'.repeat(64);
+    const convertedText = JSON.stringify(room);
+    const cacheText = JSON.stringify({ sources: { ply: { sourcePlySha256: sourceHash } } });
+    const projectionText = JSON.stringify({ proposals: [] });
+    const gridText = JSON.stringify({ schemaVersion: 1, kind: 'ai-instance-candidate-grid', scanId: id,
+      frame: 'room-local-m', sourceHash, transformHash: expected.transformHash,
+      reviewState: 'unreviewed', grids: { '0.2': { stepM: .2, cells: [{ centerM: [0, .1, 0],
+        candidateOwners: ['proposal:one'], categories: ['sofa'], reviewState: 'unreviewed' }], recordCount: 1 } } });
+    const ai = { schemaVersion: 1, kind: 'ai-candidate-voxel-review', scanId: id,
+      frame: 'room-local-m', reviewState: 'unreviewed', sourceHash,
+      convertedHash: hash(convertedText), transformHash: expected.transformHash,
+      meshSurfaceCacheHash: hash(cacheText), projectionHash: hash(projectionText),
+      gridHash: hash(gridText), gridUri: 'ai-candidate-grid.json',
+      proposalCount: 1, uniqueSourceFaceCount: 3, cellCounts: { '0.2': 1 } };
+    const files: Record<string, string> = { 'converted.json': convertedText,
+      'mesh-surface-grids.json': cacheText,
+      'derived-v4-photo-ai-fresh/photo-face-proposals.json': projectionText,
+      'derived-v4-photo-ai-fresh/ai-candidate-grid.json': gridText,
+      'derived-v4-photo-ai-fresh/ai-candidate-manifest.json': JSON.stringify(ai) };
+    const cap = { schemaVersion: 1, scanId: id, frame: 'room-local-m',
+      convertedHash: hash(convertedText), transformHash: expected.transformHash,
+      assets: Object.fromEntries(Object.entries(files).map(([path, value]) => [path, { available: true, sha256: hash(value) }])) };
+    vi.stubGlobal('fetch', async (url: string) => {
+      const path = url.split('/assets/')[1];
+      return path === '_capabilities' ? Response.json(cap) : path in files ? new Response(files[path]) : new Response('', { status: 404 });
+    });
+    const scene = new ScanEvidenceScene(room, id);
+    const metadata = await scene.initialize();
+    expect(metadata.layers.find(row => row.id === 'aiInstances')?.available).toBe(true);
+    expect(metadata.aiReview?.proposalCount).toBe(1);
+    const handle = await scene.loadLayer('aiInstances');
+    const cells = (handle.group.children[0] as THREE.InstancedMesh).userData.cells;
+    expect(cells[0].candidateOwners).toEqual(['proposal:one']);
+    expect(cells[0].ownerIds).toBeUndefined();
+    handle.dispose();
+  });
   it('loads a verified rescan sofa layer while retaining the v1 evidence and review photo', async () => {
     const convertedText = JSON.stringify(room), rawText = 'raw rescan mesh', geometryText = JSON.stringify(oneGrid);
     const v1 = { ...manifest(), scanId: 'office-2-rescan', sourceFiles: [{ uri: 'converted.json', sha256: hash(convertedText) }] };

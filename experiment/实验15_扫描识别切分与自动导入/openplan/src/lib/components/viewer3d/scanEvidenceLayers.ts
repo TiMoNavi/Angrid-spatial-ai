@@ -3,7 +3,7 @@ import { PLYLoader } from 'three/examples/jsm/loaders/PLYLoader.js';
 import { base } from '$app/paths';
 import { scanRegistration, type RegisteredScanRoom } from './scanVoxelLayer';
 
-export type EvidenceLayerId = 'raw' | 'depth' | 'fusion' | 'rawSurface' | 'roomplan' | 'obb' | 'slice' | 'aabb' | 'structure' | 'furniture' | 'corrected' | 'conflict' | 'unknown' | 'clutter' | 'splat' | 'sofaCore' | 'sofaCandidate' | 'chairContinuation' | 'chairTableReview' | 'unknownStructureResidual' | 'unknownOpeningResidual' | 'unknownObjectResidual';
+export type EvidenceLayerId = 'raw' | 'depth' | 'fusion' | 'rawSurface' | 'roomplan' | 'obb' | 'slice' | 'aabb' | 'structure' | 'furniture' | 'corrected' | 'conflict' | 'unknown' | 'clutter' | 'splat' | 'aiInstances' | 'sofaCore' | 'sofaCandidate' | 'chairContinuation' | 'chairTableReview' | 'unknownStructureResidual' | 'unknownOpeningResidual' | 'unknownObjectResidual';
 export interface EvidenceLayerMeta {
   id: EvidenceLayerId; title: string; kind: string; available: boolean; reason: string;
   provenance: string; clipped: boolean; defaultOpacity: number; color: string; total?: number;
@@ -24,12 +24,12 @@ interface DecodedGrid { stepM: number; cells: EvidenceCell[]; recordCount: numbe
 const COLORS = [0xd69c68, 0xb99280, 0xe3b682, 0xc8aa86, 0xdab4a2];
 const MAX_DISPLAY_CELLS = 50000;
 const MAX_REVIEW_OUTLINE_CELLS = 1800;
-export const REVIEW_OUTLINE_LAYERS = new Set<EvidenceLayerId>(['sofaCore', 'chairContinuation', 'chairTableReview']);
+export const REVIEW_OUTLINE_LAYERS = new Set<EvidenceLayerId>(['aiInstances', 'sofaCore', 'chairContinuation', 'chairTableReview']);
 // Filled surface/volume cells start faint, independent of the confidence of
 // their source. The TSDF mesh is a separate reference surface.
 const VOXEL_LAYER_IDS = new Set<EvidenceLayerId>([
   'rawSurface', 'structure', 'furniture', 'corrected', 'conflict', 'unknown', 'clutter',
-  'sofaCore', 'sofaCandidate', 'chairContinuation', 'chairTableReview',
+  'aiInstances', 'sofaCore', 'sofaCandidate', 'chairContinuation', 'chairTableReview',
   'unknownStructureResidual', 'unknownOpeningResidual', 'unknownObjectResidual'
 ]);
 /** Background evidence first, classified geometry second, diagnostic wireframes last. */
@@ -38,6 +38,7 @@ export const EVIDENCE_RENDER_ORDER: Record<EvidenceLayerId, number> = {
   slice: 5, roomplan: 6, structure: 10, furniture: 12,
   corrected: 14, conflict: 16, unknown: 17, clutter: 18,
   unknownStructureResidual: 19, unknownOpeningResidual: 20, unknownObjectResidual: 21,
+  aiInstances: 22,
   sofaCandidate: 23, sofaCore: 24, chairContinuation: 25, chairTableReview: 26,
   obb: 60, aabb: 61
 };
@@ -56,6 +57,7 @@ const definitions: { id: EvidenceLayerId; title: string; kind: string; provenanc
   { id: 'conflict', title: '归属冲突体素', kind: 'conflict-grid', provenance: 'measured · conflict', color: 0xee8cb8 },
   { id: 'unknown', title: '未归属观察体素', kind: 'unknown-grid', provenance: 'measured · unknown', color: 0x9aa4b5, opacity: 0.5 },
   { id: 'clutter', title: '杂物候选体素', kind: 'clutter-candidate-grid', provenance: 'candidate', color: 0xdc9aef },
+  { id: 'aiInstances', title: 'AI 物体实例候选体素', kind: 'ai-candidate-grid', provenance: 'AI 照片提示 + 实测源面 · 待复核', color: 0x68d9dc, path: 'derived-v4-photo-ai-fresh/ai-candidate-grid.json' },
   { id: 'sofaCore', title: '沙发核心观察体素', kind: 'sofa-core-grid', provenance: '复扫实测 · 沙发候选', color: 0x48c0d8, opacity: 0.68, reviewUri: 'sofa-core-grid.json', reviewNote: '照片锚定的沙发可见面核心；不是完整沙发或实体框。' },
   { id: 'sofaCandidate', title: '邻近大件待复核面体素', kind: 'sofa-candidate-grid', provenance: '复扫实测 · 未确认物体', color: 0x85e0da, opacity: 0.24, reviewUri: 'sofa-candidate-grid.json', reviewNote: '邻接扩展含未被照片锚定的大连通片；可能不属于沙发，默认关闭，需人工核对。' },
   { id: 'chairContinuation', title: '椅子连续面归属候选', kind: 'chair-continuation-grid', provenance: '复扫实测 · 连续面候选', color: 0xffba7a, opacity: 0.68, reviewUri: 'chair-continuation-grid.json', reviewNote: '与已有椅面连通的原未归属面；尚未修改原归属。' },
@@ -233,6 +235,7 @@ export class ScanEvidenceScene {
   private capabilities!: Capabilities;
   private manifest: Json | null = null;
   private reviewManifest: Json | null = null;
+  private aiManifest: Json | null = null;
   private report: Json | null = null;
   private legacyReport: Json | null = null;
   private layers: EvidenceLayerMeta[] = [];
@@ -240,7 +243,7 @@ export class ScanEvidenceScene {
   private payloads = new Map<string, Json>();
   private readonly registration;
   private readonly loader = new PLYLoader();
-  constructor(private room: RegisteredScanRoom, private scanId: 'office-1' | 'office-2' | 'office-2-rescan') { this.registration = scanRegistration(room); }
+  constructor(private room: RegisteredScanRoom, private scanId: string) { this.registration = scanRegistration(room); }
   private url(path: string) { return `${base}/api/local-scan/${this.scanId}/assets/${safeEvidencePath(path)}`; }
   private async bytes(path: string, signal?: AbortSignal, expected?: string) {
     const asset = this.capabilities.assets[path];
@@ -283,6 +286,27 @@ export class ScanEvidenceScene {
       try { this.reviewManifest = validateReviewManifest(await this.json('derived-v2/layer-manifest.json', signal), cap); }
       catch (error) { warnings.push('复扫归属复核层：' + String(error instanceof Error ? error.message : error)); this.reviewManifest = null; }
     }
+    if (cap.assets['derived-v4-photo-ai-fresh/ai-candidate-manifest.json']?.available) {
+      try {
+        const document = await this.json('derived-v4-photo-ai-fresh/ai-candidate-manifest.json', signal);
+        const measuredCache = await this.json('mesh-surface-grids.json', signal);
+        if (document.schemaVersion !== 1 || document.kind !== 'ai-candidate-voxel-review' ||
+            document.scanId !== this.scanId || document.frame !== 'room-local-m' ||
+            document.reviewState !== 'unreviewed' || document.convertedHash !== cap.convertedHash ||
+            document.transformHash !== cap.transformHash ||
+            document.sourceHash !== measuredCache.sources?.ply?.sourcePlySha256 ||
+            document.meshSurfaceCacheHash !== cap.assets['mesh-surface-grids.json']?.sha256 ||
+            document.projectionHash !== cap.assets['derived-v4-photo-ai-fresh/photo-face-proposals.json']?.sha256 ||
+            document.gridHash !== cap.assets['derived-v4-photo-ai-fresh/ai-candidate-grid.json']?.sha256 ||
+            document.gridUri !== 'ai-candidate-grid.json' ||
+            !Number.isSafeInteger(document.proposalCount) || document.proposalCount < 0 ||
+            !Number.isSafeInteger(document.uniqueSourceFaceCount) || document.uniqueSourceFaceCount < 0 ||
+            !Number.isSafeInteger(document.cellCounts?.['0.2']) || document.cellCounts['0.2'] < 0) {
+          throw new Error('AI 候选来源、坐标或审核状态不匹配');
+        }
+        this.aiManifest = document;
+      } catch (error) { warnings.push('AI 源面候选：' + String(error instanceof Error ? error.message : error)); this.aiManifest = null; }
+    }
     if (!this.report && cap.assets['segments/segments.json']?.available) {
       try { this.legacyReport = await this.json('segments/segments.json', signal); } catch (error) { warnings.push(String(error)); }
     }
@@ -300,7 +324,11 @@ export class ScanEvidenceScene {
         meta.available = !!(this.report?.objects?.length || this.legacyReport?.objects?.length); meta.reason = this.report ? '先切分后的测量候选；不保证水密' : this.legacyReport ? '旧排他裁片，仅供证据对照' : '没有家具切片输入';
         if (!this.report) meta.title = definition.id === 'slice' ? '家具网格候选（原裁片）' : meta.title;
       }
-      if (definition.reviewUri) {
+      if (definition.id === 'aiInstances') {
+        meta.available = !!this.aiManifest && !!cap.assets['derived-v4-photo-ai-fresh/ai-candidate-grid.json']?.available;
+        meta.reason = meta.available ? '来自已校验的照片/深度源面提案；尚未确认为家具边界或实心几何' : '尚无通过来源校验的 AI 体素提案';
+        meta.total = this.aiManifest?.cellCounts?.['0.2'];
+      } else if (definition.reviewUri) {
         const entry = this.reviewManifest?.layers.find((row: Json) => row.geometryUri === definition.reviewUri);
         meta.available = !!entry?.available && !!cap.assets['derived-v2/' + definition.reviewUri]?.available;
         meta.reason = meta.available ? definition.reviewNote || '复扫实测后的待复核候选；不是封闭实体' : entry?.warning || '尚无通过复扫来源校验的复核产物';
@@ -315,7 +343,9 @@ export class ScanEvidenceScene {
       return meta;
     });
     const photos = Object.entries(cap.assets).filter(([path, asset]) => /^(?:review\/)?photo-\d{3}\.jpg$/.test(path) && asset.available).sort(([a], [b]) => a.localeCompare(b)).map(([path]) => ({ path, title: path.startsWith('review/') ? path.replace('review/photo-', '归属复核照片 ').replace('.jpg', '') : path.replace('photo-', '扫描参考照片 ').replace('.jpg', ''), url: this.url(path) }));
-    return { layers: this.layers, objects: this.objects, photos, warnings, clutterComputed: !!this.manifest?.clutter?.computed, transformHash: cap.transformHash, convertedHash: cap.convertedHash, manifest: this.manifest, reviewManifest: this.reviewManifest, reviewReportUrl: this.reviewManifest ? this.url('derived-v2/review-report.json') : null };
+    return { layers: this.layers, objects: this.objects, photos, warnings, clutterComputed: !!this.manifest?.clutter?.computed, transformHash: cap.transformHash, convertedHash: cap.convertedHash, manifest: this.manifest, reviewManifest: this.reviewManifest, reviewReportUrl: this.reviewManifest ? this.url('derived-v2/review-report.json') : null,
+      aiReview: this.aiManifest ? { proposalCount: this.aiManifest.proposalCount, uniqueSourceFaceCount: this.aiManifest.uniqueSourceFaceCount } : null,
+      aiQaUrl: this.aiManifest && cap.assets['derived-v4-photo-ai-fresh/qa/contact.jpg']?.available ? this.url('derived-v4-photo-ai-fresh/qa/contact.jpg') : null };
   }
   private localGroup(id: EvidenceLayerId) {
     const group = new THREE.Group(); group.name = `iPhone ${this.scanId} · ${id}`;
@@ -339,10 +369,18 @@ export class ScanEvidenceScene {
   private addGrid(group: THREE.Group, decoded: DecodedGrid, color: number) {
     const indices = Array.from({ length: Math.min(decoded.cells.length, MAX_DISPLAY_CELLS) }, (_, i) => Math.floor(i * decoded.cells.length / Math.min(decoded.cells.length, MAX_DISPLAY_CELLS)));
     const cells = indices.map(index => decoded.cells[index]);
-    const mesh = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshStandardMaterial({ color, roughness: 0.88 }), cells.length);
+    const isAiReview = group.userData.layerId === 'aiInstances';
+    const mesh = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshStandardMaterial({ color: isAiReview ? 0xffffff : color, roughness: 0.88 }), cells.length);
     const matrix = new THREE.Matrix4(), scale = new THREE.Vector3().setScalar(decoded.stepM * 0.9), identity = new THREE.Quaternion();
     const baseMatrices = cells.map((cell, index) => {
       matrix.compose(new THREE.Vector3(...cell.center as [number, number, number]), identity, scale); mesh.setMatrixAt(index, matrix);
+      if (isAiReview) {
+        const categories = Array.isArray(cell.categories) ? cell.categories : [];
+        const tint = categories.length > 1 ? 0xf28dc4 : categories.includes('sofa') ? 0x55cbd9 :
+          categories.includes('chair') ? 0xf7ad6f : categories.includes('table') ? 0xb5d48b :
+          categories.includes('storage') ? 0xb8a6df : 0xaab6bf;
+        mesh.setColorAt(index, new THREE.Color(tint));
+      }
       if (cell.convertedIndices?.length === 1 && ['furniture', 'corrected'].includes(group.userData.layerId)) mesh.setColorAt(index, new THREE.Color(COLORS[cell.convertedIndices[0] % COLORS.length]));
       return matrix.clone();
     });
@@ -385,6 +423,16 @@ export class ScanEvidenceScene {
         const geometry = await this.geometry(definition.path!, signal), colors = !!geometry.getAttribute('color');
         const object = id === 'depth' ? new THREE.Points(geometry, new THREE.PointsMaterial({ color: colors ? 0xffffff : definition.color, vertexColors: colors, size: 1.8, sizeAttenuation: true })) : new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ color: 0xffffff, vertexColors: colors, side: THREE.DoubleSide, roughness: 0.9 }));
         object.userData = { layerId: id }; group.add(object); total = drawn = id === 'depth' ? geometry.getAttribute('position').count : (geometry.index?.count || geometry.getAttribute('position').count) / 3;
+      } else if (id === 'aiInstances') {
+        if (!this.aiManifest) throw new Error('AI 候选尚未通过来源校验');
+        const payload = await this.json('derived-v4-photo-ai-fresh/ai-candidate-grid.json', signal, this.aiManifest.gridHash);
+        if (payload.schemaVersion !== 1 || payload.scanId !== this.scanId ||
+            payload.frame !== 'room-local-m' || payload.reviewState !== 'unreviewed' ||
+            payload.sourceHash !== this.aiManifest.sourceHash || payload.transformHash !== this.capabilities.transformHash) {
+          throw new Error('AI 候选网格不属于当前扫描或已越过待复核状态');
+        }
+        const decoded = decodeEvidenceGrid(payload, stepM);
+        total = decoded.recordCount; drawn = this.addGrid(group, decoded, definition.color);
       } else if (id === 'rawSurface') {
         const cache = await this.json('mesh-surface-grids.json', signal), source = cache.sources?.[this.scanId === 'office-1' ? 'fusion' : 'ply'];
         if (!source) throw new Error('缺少对应的原始/融合表面缓存');

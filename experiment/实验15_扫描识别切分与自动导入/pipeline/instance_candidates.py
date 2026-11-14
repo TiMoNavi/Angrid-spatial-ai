@@ -226,6 +226,58 @@ def parse_pending_photo_hints(path: Path | None, scan_id: str, valid_photo_ids: 
             "projectionState": "pending; no photo hint changed any face assignment"}
 
 
+def parse_projected_photo_proposals(path: Path | None, scan_id: str,
+                                    source_hash: str, transform_id: str,
+                                    buckets: dict[str, np.ndarray], face_count: int):
+    if path is None:
+        return None
+    data = load_json(path)
+    if (not isinstance(data, dict) or data.get("schemaVersion") != 1 or
+            data.get("algorithmVersion") != "photo-source-face-v1" or
+            data.get("scanId") != scan_id or data.get("sourceHash") != source_hash or
+            data.get("transformHash") != transform_id or
+            data.get("sourceFaceCount") != face_count or
+            data.get("originalOwnerAssignmentsPreserved") is not True or
+            not isinstance(data.get("proposals"), list) or len(data["proposals"]) > 100 or
+            not isinstance(data.get("inputHashes"), dict) or
+            data["inputHashes"].get("raw-mesh.ply") != source_hash):
+        raise ValueError("photo projections are not bound to this original source and transform")
+    admissible = np.zeros(face_count, dtype=bool)
+    for bucket in ("unknown", "one-owner", "conflict"):
+        if bucket in buckets:
+            admissible[buckets[bucket]] = True
+    existing_owner = np.zeros(face_count, dtype=bool)
+    for bucket in ("one-owner", "conflict"):
+        if bucket in buckets:
+            existing_owner[buckets[bucket]] = True
+    proposals = []
+    seen_ids = set()
+    for row in data["proposals"]:
+        if (not isinstance(row, dict) or
+                any(key in row for key in ("owner", "ownerId", "ownerIds", "acceptedOwnerId")) or
+                not isinstance(row.get("instanceId"), str) or row["instanceId"] in seen_ids or
+                row.get("reviewState") != "unreviewed" or
+                row.get("ownershipState") != "unchanged-v1" or
+                not isinstance(row.get("categoryCandidates"), list) or
+                len(row["categoryCandidates"]) != 1 or
+                not isinstance(row["categoryCandidates"][0], str)):
+            raise ValueError("photo projection contains an invalid or owner-changing proposal")
+        seen_ids.add(row["instanceId"])
+        values = row.get("sourceFaceIds")
+        if not isinstance(values, list) or any(type(value) is not int for value in values):
+            raise ValueError("photo projection source face IDs are invalid")
+        ids = np.asarray(values, dtype=np.int64)
+        if (len(ids) != row.get("sourceFaceCount") or len(np.unique(ids)) != len(ids) or
+                np.any((ids < 0) | (ids >= face_count)) or not np.all(admissible[ids])):
+            raise ValueError("photo projection contains out-of-scope original PLY faces")
+        actual_conflicts = ids[existing_owner[ids]].tolist()
+        if (row.get("existingOwnerConflictSourceFaceIds") != actual_conflicts or
+                row.get("existingOwnerConflictFaceCount") != len(actual_conflicts)):
+            raise ValueError("photo projection owner conflict counts are inconsistent")
+        proposals.append(row)
+    return {"sha256": sha256(path), "count": len(proposals), "proposals": proposals}
+
+
 def roomplan_instances(room: dict, report: dict, raw_room: dict | None):
     originals = {item.get("identifier"): item for item in (raw_room or {}).get("objects", [])}
     result = []
@@ -251,7 +303,8 @@ def make_instance_ledger(*, scan_id: str, source_hash: str, transform_id: str,
                          vertices: np.ndarray, faces: np.ndarray, classes: np.ndarray,
                          room: dict, buckets: dict[str, np.ndarray], report: dict,
                          raw_room: dict | None, seed_rows: list[dict], seed_hash: str | None,
-                         photo_hints: dict | None, structure_distance_m: float = 0.06,
+                         photo_hints: dict | None, photo_projected: dict | None = None,
+                         structure_distance_m: float = 0.06,
                          box_margin_m: float = 0.045,
                          min_component_faces: int = 100,
                          max_unseeded_candidates: int = 100):
@@ -340,19 +393,25 @@ def make_instance_ledger(*, scan_id: str, source_hash: str, transform_id: str,
                             "outside-known-roomplan-obb"], "reviewFlags": flags,
             "warning": "Unlabelled observed surface; may contain several touching objects."
         })
+    if photo_projected:
+        proposals.extend(photo_projected["proposals"])
     candidate_count = np.zeros(len(faces), dtype=np.uint16)
     for proposal in proposals:
         candidate_count[np.asarray(proposal["sourceFaceIds"], dtype=np.int64)] += 1
     candidate_ids = np.flatnonzero(candidate_count > 0)
-    if not np.isin(candidate_ids, buckets["unknown"]).all():
-        raise AssertionError("proposal consumed a source face outside v1 unknown")
+    admissible_ids = np.concatenate([buckets.get(bucket, np.empty(0, dtype=np.int64))
+                                     for bucket in ("unknown", "one-owner", "conflict")])
+    if not np.isin(candidate_ids, admissible_ids).all():
+        raise AssertionError("proposal consumed a protected source face")
     overlap_ids = np.flatnonzero(candidate_count > 1)
     return {
         "schemaVersion": 1, "algorithmVersion": ALGORITHM_VERSION,
         "scanId": scan_id, "frame": "room-local-m",
         "sourceHash": source_hash, "transformHash": transform_id,
         "manualSeedHash": seed_hash, "photoSemanticHints": photo_hints,
-        "photoToPlyProjection": "not-implemented; photo hints do not create source-face seeds",
+        "photoProjectionHash": photo_projected["sha256"] if photo_projected else None,
+        "photoToPlyProjection": ("review-only original-source-face proposals; no owner changes"
+                                 if photo_projected else "not-implemented; photo hints do not create source-face seeds"),
         "sourceFaceCount": int(len(faces)),
         "originalAssignmentCounts": {key: int(len(value)) for key, value in buckets.items()},
         "conservation": {"sum": int(sum(len(value) for value in buckets.values())),
@@ -361,7 +420,11 @@ def make_instance_ledger(*, scan_id: str, source_hash: str, transform_id: str,
         "roomPlanInstances": instances, "proposals": proposals,
         "proposalOverlapSourceFaceIds": overlap_ids.tolist(),
         "v1UnknownFaceCount": int(len(buckets["unknown"])),
-        "unknownWithoutProposalFaceCount": int(len(buckets["unknown"]) - len(candidate_ids)),
+        "unknownWithoutProposalFaceCount": int(len(buckets["unknown"]) -
+                                              np.isin(candidate_ids, buckets["unknown"]).sum()),
+        "suggestedExistingOwnerFaceCount": int(np.isin(
+            candidate_ids, np.concatenate([buckets.get(bucket, np.empty(0, dtype=np.int64))
+                                           for bucket in ("one-owner", "conflict")])).sum()),
         "unseededComponentCountAboveThreshold": len(components),
         "unseededComponentsEmitted": min(len(components), max_unseeded_candidates),
         "warnings": [warning for warning in (
@@ -414,6 +477,7 @@ def run_config_hash(*, scan_id: str, allow_no_mesh: bool, args) -> str:
 
 def run(args):
     scan_dir = args.scan_dir.resolve()
+    photo_projections_path = getattr(args, "photo_projections", None)
     source = (args.source or scan_dir / "raw-mesh.ply").resolve()
     room_path = (args.converted or scan_dir / "converted.json").resolve()
     assignment_path = (args.assignments or scan_dir / "derived-v1/face-assignments.json").resolve()
@@ -434,7 +498,7 @@ def run(args):
     photos = {str(row["file"]) for row in room.get("photos", []) if row.get("file")}
     photo_hints = parse_pending_photo_hints(args.photo_hints, scan_id, photos)
     if not source.is_file():
-        if not args.allow_no_mesh or args.manual_seeds:
+        if not args.allow_no_mesh or args.manual_seeds or photo_projections_path:
             raise FileNotFoundError("source PLY missing; use --allow-no-mesh without face seeds for honest fallback")
         ledger = {"schemaVersion": 1, "algorithmVersion": ALGORITHM_VERSION,
                   "scanId": scan_id, "frame": "room-local-m", "sourceHash": None,
@@ -468,6 +532,8 @@ def run(args):
     if report.get("sourceFaces") != len(faces):
         raise ValueError("v1 report sourceFaceCount differs from source PLY")
     buckets = validate_v1_assignments(load_json(assignment_path), source_hash, len(faces))
+    photo_projected = parse_projected_photo_proposals(
+        photo_projections_path, scan_id, source_hash, transform_id, buckets, len(faces))
     classes, class_available = parse_face_classes(mesh, len(faces))
     vertices = transform_points(np.asarray(mesh.vertices),
                                 np.asarray(matrix_values).reshape(4, 4, order="F"))
@@ -476,7 +542,7 @@ def run(args):
         scan_id=scan_id, source_hash=source_hash, transform_id=transform_id,
         vertices=vertices, faces=faces, classes=classes, room=room,
         buckets=buckets, report=report, raw_room=raw_room, seed_rows=seeds,
-        seed_hash=seed_hash, photo_hints=photo_hints,
+        seed_hash=seed_hash, photo_hints=photo_hints, photo_projected=photo_projected,
         structure_distance_m=args.structure_distance,
         box_margin_m=args.box_margin, min_component_faces=args.min_component_faces,
         max_unseeded_candidates=args.max_unseeded_candidates)
@@ -493,6 +559,8 @@ def run(args):
         hashes["manual-face-seeds.json"] = seed_hash
     if photo_hints:
         hashes["photo-semantic-hints.json"] = photo_hints["sha256"]
+    if photo_projected:
+        hashes["photo-face-proposals.json"] = photo_projected["sha256"]
     return write_ledger_safely(args.out, scan_dir, ledger, hashes)
 
 
@@ -508,6 +576,7 @@ def main():
     parser.add_argument("--roomplan", type=Path)
     parser.add_argument("--manual-seeds", type=Path, help="manual-face-seeds v1; never an AI owner patch")
     parser.add_argument("--photo-hints", type=Path, help="unprojected photo-semantic-hints v1")
+    parser.add_argument("--photo-projections", type=Path, help="review-only calibrated source-face proposals")
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--allow-no-mesh", action="store_true")
     parser.add_argument("--structure-distance", type=float, default=0.06)

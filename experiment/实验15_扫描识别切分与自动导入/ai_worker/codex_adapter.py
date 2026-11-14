@@ -196,12 +196,16 @@ def run_photo_hint_job(
     codex_binary: str = "codex",
     environment: Optional[Mapping[str, str]] = None,
     progress: Optional[Callable[[str], None]] = None,
+    use_existing_login: bool = False,
+    model_override: Optional[str] = None,
 ) -> Dict:
     """Return validated unprojected 2D hints, or a deterministic offline fallback.
 
     The caller must provide a private, minimal workspace. No network request is
-    made unless model, token and selected images are present. The token remains
-    only in the child process environment; it is never put into config/argv.
+    made unless model, selected images, and an explicit auth mode are present.
+    In environment-key mode the token remains only in the child environment.
+    Existing-login mode uses Codex's pre-existing auth store without reading or
+    copying its credential; user config is ignored and the session is ephemeral.
     """
     root = Path(workspace).resolve(strict=True)
     evidence_path = _file_inside(root, evidence_json, MAX_EVIDENCE_BYTES, {".json"})
@@ -212,6 +216,8 @@ def run_photo_hint_job(
     photo_ids = {p["photoId"] for p in evidence["photos"]}
     if any(photo_id not in photo_ids for photo_id in images):
         raise InvalidEvidence("An image has no matching original photo ID")
+    if images and set(images) != photo_ids:
+        raise InvalidEvidence("Evidence must list exactly the attached selected photos")
     image_paths = [_file_inside(root, image, MAX_IMAGE_BYTES, ALLOWED_IMAGE_EXTENSIONS)
                    for image in images.values()]
     if timeout_seconds <= 0 or timeout_seconds > 600:
@@ -221,8 +227,8 @@ def run_photo_hint_job(
 
     source = os.environ if environment is None else environment
     key = source.get(KEY_ENV, "")
-    model = source.get(MODEL_ENV, "")
-    if not key or not model or not image_paths:
+    model = model_override or source.get(MODEL_ENV, "")
+    if not model or not image_paths or (not key and not use_existing_login):
         if progress: progress("offline")
         return _fallback(evidence, "missing_ai_configuration_or_images", offline_payload)
     if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}", model):
@@ -238,25 +244,43 @@ def run_photo_hint_job(
     if not binary:
         if progress: progress("offline")
         return _fallback(evidence, "codex_not_installed", offline_payload)
+    login_home = None
+    if use_existing_login:
+        login_home = Path(source.get("CODEX_HOME") or (Path.home() / ".codex")).resolve()
+        if not (login_home / "auth.json").is_file():
+            if progress: progress("offline")
+            return _fallback(evidence, "codex_login_unavailable", offline_payload)
 
     if progress: progress("agent_running")
     with tempfile.TemporaryDirectory(prefix="angrid-scan-ai-") as temporary:
         private = Path(temporary)
-        home = private / "codex-home"
-        home.mkdir(mode=0o700)
-        config_path = home / "config.toml"
-        config_path.write_text(_config(base_url, model), encoding="utf-8")
-        config_path.chmod(0o600)
+        home = login_home if use_existing_login else private / "codex-home"
+        if not use_existing_login:
+            home.mkdir(mode=0o700)
+            config_path = home / "config.toml"
+            config_path.write_text(_config(base_url, model), encoding="utf-8")
+            config_path.chmod(0o600)
         schema_path = private / "output.schema.json"
         schema_path.write_bytes(SCHEMA.read_bytes())
         output_path = private / "final.json"
         child_env = {name: source[name] for name in ("LANG", "LC_ALL", "SSL_CERT_FILE") if source.get(name)}
-        child_env.update({"PATH": child_path, "HOME": str(home), "CODEX_HOME": str(home), KEY_ENV: key})
-        command = [binary, "--no-daemon", "--strict-config", "--ask-for-approval", "never",
-                   "exec", "--sandbox", "read-only", "--ephemeral", "--json",
+        child_env.update({"PATH": child_path, "HOME": str(Path.home() if use_existing_login else home),
+                          "CODEX_HOME": str(home)})
+        command = [binary, "--no-daemon", "--strict-config", "--ask-for-approval", "never"]
+        if use_existing_login:
+            # Config metadata only; Codex reads the existing login itself.
+            provider = ("{name=\"Angrid scan hints\",base_url=" + json.dumps(base_url) +
+                        ",wire_api=\"responses\",requires_openai_auth=true}")
+            command.extend(["-c", "model=" + json.dumps(model),
+                            "-c", "model_provider=\"angrid_scan\"",
+                            "-c", "model_providers.angrid_scan=" + provider])
+        else:
+            child_env[KEY_ENV] = key
+        command.extend(["exec"] + (["--ignore-user-config"] if use_existing_login else []) +
+                       ["--sandbox", "read-only", "--ephemeral", "--json",
                    "--skip-git-repo-check", "--output-schema", str(schema_path),
                    "--output-last-message", str(output_path), "--model", model,
-                   "--cd", str(root)]
+                   "--cd", str(root)])
         for image in image_paths:
             command.extend(["--image", str(image)])
         command.append("-")
@@ -275,7 +299,8 @@ def run_photo_hint_job(
         except (OSError, ValueError, UnicodeError):
             if progress: progress("offline")
             return _fallback(evidence, "codex_invalid_output", offline_payload)
-        if key in json.dumps(payload, ensure_ascii=False):
+        serialized = json.dumps(payload, ensure_ascii=False)
+        if (key and key in serialized) or re.search(r"sk-[A-Za-z0-9]{16,}", serialized):
             if progress: progress("offline")
             return _fallback(evidence, "codex_unsafe_output", offline_payload)
     if progress: progress("unreviewed_hints_ready")
@@ -291,6 +316,9 @@ def main(argv=None) -> int:
     parser.add_argument("--image", nargs=2, action="append", metavar=("PHOTO_ID", "FILE"), default=[])
     parser.add_argument("--offline-json")
     parser.add_argument("--timeout-seconds", type=float, default=120)
+    parser.add_argument("--use-existing-login", action="store_true",
+                        help="explicitly use existing Codex auth without reading or copying its key")
+    parser.add_argument("--model", help="model ID; alternatively set ANGRID_SCAN_AI_MODEL")
     args = parser.parse_args(argv)
     offline = None
     if args.offline_json:
@@ -298,7 +326,9 @@ def main(argv=None) -> int:
         offline = json.loads(offline_path.read_text(encoding="utf-8"))
     result = run_photo_hint_job(args.workspace, args.evidence_json, args.skill_file,
                                 dict(args.image), offline_payload=offline,
-                                timeout_seconds=args.timeout_seconds)
+                                timeout_seconds=args.timeout_seconds,
+                                use_existing_login=args.use_existing_login,
+                                model_override=args.model)
     print(json.dumps(result, ensure_ascii=False, separators=(",", ":")))
     return 0
 

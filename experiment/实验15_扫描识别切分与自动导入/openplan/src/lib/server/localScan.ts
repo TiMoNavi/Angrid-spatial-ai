@@ -1,11 +1,10 @@
 import { error } from '@sveltejs/kit';
 import { createReadStream } from 'node:fs';
 import { stat } from 'node:fs/promises';
-import { resolve } from 'node:path';
 import { Readable } from 'node:stream';
 import type { RequestEvent } from '@sveltejs/kit';
+import { privateScan, resolvePrivateFile } from './scanRegistry';
 
-const scans = new Set(['office-1', 'office-2', 'office-2-rescan']);
 const hosts = new Set(['localhost', '127.0.0.1', '[::1]']);
 const addresses = new Set(['127.0.0.1', '::1', '::ffff:127.0.0.1']);
 const files = {
@@ -25,8 +24,10 @@ export async function localScan(event: RequestEvent, kind: keyof typeof files): 
     throw error(403, 'Local access only');
   }
   const id = event.params.id;
-  if (!id || !scans.has(id)) throw error(404, 'Scan not found');
-  const path = resolve(process.cwd(), '../../.private', id, files[kind]);
+  if (!id) throw error(404, 'Scan not found');
+  const { scanRoot, imported } = await privateScan(process.cwd() + '/../../.private', id);
+  const relative = kind === 'roomplan' && imported ? imported.assetPaths.roomPlanJson! : files[kind];
+  const path = await resolvePrivateFile(scanRoot, relative);
   let size: number;
   try {
     const info = await stat(path);

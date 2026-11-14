@@ -99,7 +99,7 @@
   // Independent scan evidence and user design. Native OpenPlan objects stay in wallGroup.
   let voxelGroup: THREE.Group | undefined;
   let voxelStatus = $state('扫描图层载入中…');
-  let currentScan = $state<'office-1' | 'office-2' | 'office-2-rescan' | null>(null);
+  let currentScan = $state<string | null>(null);
   let scanStageReady = $state(false);
   let scanMotionRevision = $state(0);
   let scanRoom = $state.raw<RegisteredScanRoom | undefined>(undefined);
@@ -121,6 +121,8 @@
   let scanIdentity = $state.raw<ScanIdentity | undefined>(undefined);
   let referencePhotos = $state<{ path: string; title: string; url: string }[]>([]);
   let reviewReportUrl = $state<string | null>(null);
+  let aiReview = $state<{ proposalCount: number; uniqueSourceFaceCount: number } | null>(null);
+  let aiQaUrl = $state<string | null>(null);
   let scanObjects = $state<EvidenceObjectMeta[]>([]);
   let currentManifest: unknown = null;
   let loadSerial = 0;
@@ -150,7 +152,7 @@
     if (['obb', 'aabb', 'roomplan'].includes(id)) return 'reference';
     if (id === 'structure') return 'shell';
     if (['unknown', 'unknownStructureResidual', 'unknownOpeningResidual', 'unknownObjectResidual'].includes(id)) return 'observed';
-    if (['slice', 'furniture', 'corrected', 'conflict', 'clutter', 'sofaCore', 'sofaCandidate', 'chairContinuation', 'chairTableReview'].includes(id)) return 'candidate';
+    if (['slice', 'furniture', 'corrected', 'conflict', 'clutter', 'aiInstances', 'sofaCore', 'sofaCandidate', 'chairContinuation', 'chairTableReview'].includes(id)) return 'candidate';
     return 'surface';
   }
   const studioEntries = $derived.by(() => {
@@ -242,6 +244,8 @@
         : metadata.manifest ?? { schemaVersion: 1, ...scanIdentity, sourceFiles: [{ uri: 'converted.json', sha256: metadata.convertedHash }], layers: [] };
       referencePhotos = metadata.photos;
       reviewReportUrl = metadata.reviewReportUrl;
+      aiReview = metadata.aiReview;
+      aiQaUrl = metadata.aiQaUrl;
       scanObjects = metadata.objects;
       clutterComputed = metadata.clutterComputed;
       manifestWarnings = metadata.warnings;
@@ -252,7 +256,7 @@
       loadEditedDocument();
       // First paint stays cheap: the fused scan plus a few rectified boxes and
       // existing OBB wireframes. Review-only and raw surface grids remain opt-in.
-      await applyPreset(scan === 'office-1' ? 'fusion' : 'edit');
+      await applyPreset(scan.startsWith('case-') ? 'imported' : scan === 'office-1' ? 'fusion' : 'edit');
       if (controller.signal.aborted || serial !== loadSerial) return;
       scanStageReady = true;
       wallGroup.visible = buildingVisible;
@@ -315,6 +319,7 @@
     preset = value;
     const desired: Record<string, EvidenceLayerId[]> = {
       edit: ['fusion', 'structure', 'corrected', 'obb'],
+      imported: ['rawSurface', 'structure', 'furniture', 'aiInstances', 'obb'],
       evidence: ['raw', 'roomplan', 'obb'],
       slices: ['slice', 'obb', 'aabb'],
       comparison: ['rawSurface', 'structure', 'furniture'],
@@ -325,6 +330,9 @@
     const active = new Set(desired[value] || desired.edit);
     for (const row of layerRows) {
       row.visible = active.has(row.id) && row.available;
+      if (value === 'imported' && row.id === 'rawSurface') { row.opacity = 0.35; row.wireframe = true; }
+      if (value === 'imported' && row.id === 'structure') row.opacity = 0.38;
+      if (value === 'imported' && row.id === 'furniture') row.opacity = 0.28;
       const handle = layerHandles.get(row.id); if (handle) handle.group.visible = row.visible;
       if (!row.visible) { layerControllers.get(row.id)?.abort(); layerControllers.delete(row.id); row.busy = false; }
     }
@@ -666,7 +674,7 @@
   }
   function validHit(hit: THREE.Intersection, clipped: boolean): boolean { return !clipEnabled || !clipped || hit.point.y <= Number(clipHeight) * 100 + 1e-4; }
   function objectLayer(id: EvidenceLayerId): boolean { return ['furniture', 'corrected', 'conflict', 'obb', 'slice', 'aabb'].includes(id); }
-  function gridLayer(id: EvidenceLayerId): boolean { return ['rawSurface', 'structure', 'furniture', 'corrected', 'conflict', 'unknown', 'clutter', 'sofaCore', 'sofaCandidate', 'chairContinuation', 'chairTableReview', 'unknownStructureResidual', 'unknownOpeningResidual', 'unknownObjectResidual'].includes(id); }
+  function gridLayer(id: EvidenceLayerId): boolean { return ['rawSurface', 'structure', 'furniture', 'corrected', 'conflict', 'unknown', 'clutter', 'aiInstances', 'sofaCore', 'sofaCandidate', 'chairContinuation', 'chairTableReview', 'unknownStructureResidual', 'unknownOpeningResidual', 'unknownObjectResidual'].includes(id); }
   function selectedHit(hit: THREE.Intersection, id: EvidenceLayerId): boolean {
     // A zero-scaled InstancedMesh matrix must not be trusted as a picking filter.
     return selectedScanObject === null || !objectLayer(id) || hitOwners(hit).includes(selectedScanObject);
@@ -2965,7 +2973,7 @@
 
   onMount(() => {
     const scanParam = new URLSearchParams(window.location.search).get('scan');
-    currentScan = scanParam === 'office-1' || scanParam === 'office-2' || scanParam === 'office-2-rescan' ? scanParam : null;
+    currentScan = scanParam && /^[a-z0-9][a-z0-9-]{0,63}$/.test(scanParam) ? scanParam : null;
     const stopAISettings = openAISettings.subscribe(config => {
       cancelAIRender();
       openaiModel = getEffectiveModel(config);
@@ -3000,7 +3008,7 @@
       loadSerial++; disposeScanLayers();
       removeStudioGrid();
       if (editedGroup) { scene.remove(editedGroup); clearGroup(editedGroup); editedGroup = undefined; }
-      currentScan = null; scanIdentity = undefined; scanRoom = undefined; editedObjects = []; placementMode = false;
+      currentScan = null; scanIdentity = undefined; scanRoom = undefined; aiReview = null; aiQaUrl = null; editedObjects = []; placementMode = false;
       selectedVoxelScreen = null;
       updateStudioAppearance();
       if (wallGroup) wallGroup.visible = true;
@@ -3137,10 +3145,11 @@
       <a href={base + '/editor?scan=office-1'} data-sveltekit-reload aria-current={currentScan === 'office-1' ? 'page' : undefined} class="rounded bg-white/10 px-2 py-1.5 hover:bg-white/20">第一次扫描</a>
       <a href={base + '/editor?scan=office-2'} data-sveltekit-reload aria-current={currentScan === 'office-2' ? 'page' : undefined} class="rounded bg-white/10 px-2 py-1.5 hover:bg-white/20">第二次扫描</a>
       <a href={base + '/editor?scan=office-2-rescan'} data-sveltekit-reload aria-current={currentScan === 'office-2-rescan' ? 'page' : undefined} class="rounded bg-white/10 px-2 py-1.5 hover:bg-white/20">复扫 Office 2</a>
+      <a href={base + '/editor?scan=case-office-2-e15'} data-sveltekit-reload aria-current={currentScan === 'case-office-2-e15' ? 'page' : undefined} class="rounded bg-white/10 px-2 py-1.5 hover:bg-white/20">案例包导入</a>
       <button class="rounded bg-white/10 px-2 py-1.5 hover:bg-white/20" onclick={() => frameVoxelLayer()}>定位房间</button>
     </div>
     <div class="grid grid-cols-2 gap-2">
-      <label class="grid gap-1">查看预设<select aria-label="查看预设" bind:value={preset} onchange={event => applyPreset(event.currentTarget.value)} class="rounded bg-slate-700 p-1.5"><option value="edit">全局体素 · 规整与线框</option><option value="evidence">原始扫描</option><option value="slices">家具切片</option><option value="comparison">体素对照</option><option value="fusion">融合对照</option><option value="conflict">边界与未知</option>{#if currentScan === 'office-2-rescan'}<option value="review">沙发与椅子复核</option>{/if}<option value="custom" disabled>自定义选层</option></select></label>
+      <label class="grid gap-1">查看预设<select aria-label="查看预设" bind:value={preset} onchange={event => applyPreset(event.currentTarget.value)} class="rounded bg-slate-700 p-1.5"><option value="imported">新导入 · 结构与 AI 候选</option><option value="edit">全局体素 · 规整与线框</option><option value="evidence">原始扫描</option><option value="slices">家具切片</option><option value="comparison">体素对照</option><option value="fusion">融合对照</option><option value="conflict">边界与未知</option>{#if currentScan === 'office-2-rescan'}<option value="review">沙发与椅子复核</option>{/if}<option value="custom" disabled>自定义选层</option></select></label>
       <label class="grid gap-1">显示格长<select aria-label="格子边长" bind:value={scanStep} onchange={changeGridStep} class="rounded bg-slate-700 p-1.5"><option value="0.2">20 厘米</option><option value="0.1">10 厘米</option><option value="0.05">5 厘米</option><option value="0.025">2.5 厘米</option></select></label>
     </div>
     <div class="mt-2 flex items-center gap-2">
@@ -3152,6 +3161,12 @@
       <div data-testid="review-layer-summary" class="mt-2 rounded border border-cyan-300/30 bg-cyan-300/[.06] p-2 text-[11px] text-slate-200">
         <strong class="text-cyan-100">复扫归属复核</strong>：原未归属观察体素 {layerRows.find(row => row.id === 'unknown')?.total.toLocaleString() ?? '—'} 格；复核后未决结构、开口、物体分层保留。照片锚定的沙发核心与椅子连续面是实测候选；邻近大件扩展未确认，默认关闭。原家具框和原 unknown 可独立对照。粗格跨类别可重叠，格数不能相加比较。
         {#if reviewReportUrl}<a href={reviewReportUrl} target="_blank" rel="noopener" class="mt-1 block text-cyan-200 underline underline-offset-2">查看源面归属复核报告</a>{/if}
+      </div>
+    {/if}
+    {#if aiReview}
+      <div data-testid="ai-instance-review-summary" class="mt-2 rounded border border-teal-300/30 bg-teal-300/[.07] p-2 text-[11px] text-slate-200">
+        <strong class="text-teal-100">AI 源面候选</strong>：{aiReview.proposalCount} 条照片提案，覆盖 {aiReview.uniqueSourceFaceCount.toLocaleString()} 个去重原 PLY 源面。一个体素图层按沙发、椅子、桌面等候选着色；方块只代表观测表面，未确认边界、没有自动改写家具归属。
+        {#if aiQaUrl}<a href={aiQaUrl} target="_blank" rel="noopener" class="mt-1 block text-teal-200 underline underline-offset-2">查看照片／深度投影叠图</a>{/if}
       </div>
     {/if}
     <div class="mt-2 flex flex-wrap gap-1">

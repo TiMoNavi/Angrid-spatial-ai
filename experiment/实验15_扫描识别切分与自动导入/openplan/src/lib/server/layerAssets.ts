@@ -1,13 +1,13 @@
 import { error, type RequestEvent } from '@sveltejs/kit';
 import { createReadStream } from 'node:fs';
-import { readFile, realpath, stat } from 'node:fs/promises';
+import { readFile, stat } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
-import { resolve, sep } from 'node:path';
+import { resolve } from 'node:path';
 import { Readable } from 'node:stream';
+import { privateScan, resolvePrivateFile } from './scanRegistry';
 
 const hosts = new Set(['localhost', '127.0.0.1', '[::1]', '::1']);
 const addresses = new Set(['127.0.0.1', '::1', '::ffff:127.0.0.1']);
-const scanIds = new Set(['office-1', 'office-2', 'office-2-rescan']);
 const fixed = [
   'converted.json', 'source/Room/rooms/room-0.json', 'mesh-voxels/raw-room.ply',
   'reference-depth/scan_room.ply', 'full-depth-surface-025.ply',
@@ -25,6 +25,10 @@ const fixed = [
   'derived-v2/unknown-structure-residual-grid.json',
   'derived-v2/unknown-opening-residual-grid.json',
   'derived-v2/unknown-object-residual-grid.json',
+  'derived-v4-photo-ai-fresh/photo-face-proposals.json',
+  'derived-v4-photo-ai-fresh/ai-candidate-manifest.json',
+  'derived-v4-photo-ai-fresh/ai-candidate-grid.json',
+  'derived-v4-photo-ai-fresh/qa/contact.jpg',
   ...['062', '063', '065', '079', '088', '097'].map(index => `review/photo-${index}.jpg`),
   ...['000', '007', '015', '017', '020', '023', '025', '030', '031', '035', '036', '039', '047', '053', '055', '070', '088', '106', '124'].map(index => `photo-${index}.jpg`)
 ];
@@ -42,14 +46,9 @@ export function isAllowedLayerAsset(path: string): boolean {
 
 /** Both the scan root and asset must resolve below the actual private directory. */
 export async function resolveLayerAsset(privateRoot: string, scanId: string, path: string): Promise<string> {
-  if (!scanIds.has(scanId) || !isAllowedLayerAsset(path)) throw error(404, 'Scan asset not found');
-  const root = await realpath(privateRoot);
-  const scanRoot = await realpath(resolve(root, scanId));
-  if (!scanRoot.startsWith(root + sep)) throw error(403, 'Scan path escapes private directory');
-  const asset = await realpath(resolve(scanRoot, path));
-  if (!asset.startsWith(scanRoot + sep)) throw error(403, 'Scan asset escapes scan directory');
-  if (!(await stat(asset)).isFile()) throw error(404, 'Scan asset not found');
-  return asset;
+  if (!isAllowedLayerAsset(path)) throw error(404, 'Scan asset not found');
+  const { scanRoot } = await privateScan(privateRoot, scanId);
+  return resolvePrivateFile(scanRoot, path);
 }
 
 const hashCache = new Map<string, { stamp: string; sha256: string }>();
@@ -67,9 +66,10 @@ async function fileDescriptor(path: string) {
 }
 
 export async function layerCapabilities(privateRoot: string, scanId: string) {
+  const { scanRoot } = await privateScan(privateRoot, scanId);
   const assets: Record<string, { available: boolean; reason?: string; bytes?: number; sha256?: string }> = {};
   await Promise.all(LAYER_ASSET_PATHS.map(async path => {
-    try { assets[path] = await fileDescriptor(await resolveLayerAsset(privateRoot, scanId, path)); }
+    try { assets[path] = await fileDescriptor(await resolvePrivateFile(scanRoot, path)); }
     catch { assets[path] = { available: false, reason: '未生成或缺少输入文件' }; }
   }));
   const convertedPath = await resolveLayerAsset(privateRoot, scanId, 'converted.json');
@@ -88,7 +88,7 @@ export async function layerCapabilities(privateRoot: string, scanId: string) {
 export async function serveLayerAsset(event: RequestEvent<{ id: string; path: string }>): Promise<Response> {
   if (!isLocalLayerClient(event.url.hostname, event.getClientAddress())) throw error(403, 'Local access only');
   const id = event.params.id;
-  if (!id || !scanIds.has(id)) throw error(404, 'Scan not found');
+  if (!id) throw error(404, 'Scan not found');
   const root = resolve(process.cwd(), '../../.private');
   const path = event.params.path || '';
   const headers = { 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', 'Cross-Origin-Resource-Policy': 'same-origin' };

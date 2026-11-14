@@ -202,6 +202,7 @@
           <p class="mt-1 text-sm text-slate-600">在原版 3D 编辑器中查看扫描表面体素、平整网格与语义物体。</p>
         </div>
         <div class="flex flex-wrap gap-2">
+          <a href={base + '/editor?scan=case-office-2-e15'} class="rounded-lg bg-teal-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-teal-800">查看案例 Office 2 AI 候选</a>
           <a href={`${base}/editor?scan=office-2`} class="rounded-lg bg-teal-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-teal-800">打开第二次扫描</a>
           <a href={`${base}/editor?scan=office-2-rescan`} class="rounded-lg bg-teal-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-teal-800">打开复扫 Office 2</a>
           <a href={`${base}/editor?scan=office-1`} class="rounded-lg border border-teal-300 bg-white px-4 py-2.5 text-sm font-medium text-teal-800 hover:bg-teal-100">第一次扫描</a>

@@ -17,10 +17,10 @@ def make_zip(directory: Path, rooms=None, extra=None):
                 "photos": "photos/photos.json", "depthFrames": "depth/frames.json",
                 "photoCount": 2, "depthFrameCount": 3}
     entries = {"Room/manifest.json": json.dumps(manifest),
-               "Room/rooms/room-4.json": json.dumps({"objects": []}),
+               "Room/rooms/room-4.json": json.dumps({"objects": [], "walls": []}),
                "Room/mesh/room-4.ply": "ply\n",
-               "Room/photos/photos.json": "{}",
-               "Room/depth/frames.json": "{}"}
+               "Room/photos/photos.json": "[]",
+               "Room/depth/frames.json": "[]"}
     entries.update(extra or {})
     path = directory / "input.zip"
     with ZipFile(path, "w") as archive:
@@ -40,8 +40,30 @@ class ProbeBundleTests(unittest.TestCase):
         self.assertEqual(report["rooms"][0]["index"], 4)
         self.assertEqual(report["rooms"][0]["rawMeshPly"], "Room/mesh/room-4.ply")
         self.assertFalse(report["capabilities"]["appleRoomBuilderData"])
-        self.assertEqual(report["strategy"], "own-ply-photo-depth-segmentation")
+        self.assertFalse(report["capabilities"]["posedPhotos"])
+        self.assertFalse(report["capabilities"]["depthFrames"])
+        self.assertEqual(report["strategy"], "ply-only-degraded")
         self.assertEqual(report["scanIdSuggestion"], "scan-" + report["zipSha256"][:12])
+
+    def test_counts_only_referenced_photo_and_depth_assets(self):
+        pose = {"transform": [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
+                "intrinsics": [1, 0, 0, 0, 1, 0, 0, 0, 1], "width": 640, "height": 480}
+        path = make_zip(self.directory, extra={
+            "Room/photos/photos.json": json.dumps([{"room": 4, "file": "photos/0001.jpg", **pose}]),
+            "Room/photos/0001.jpg": "photo",
+            "Room/depth/frames.json": json.dumps([{"room": 4, "file": "depth/0001.f16z", **pose}]),
+            "Room/depth/0001.f16z": "depth"})
+        report = probe(path)
+        self.assertTrue(report["capabilities"]["posedPhotos"])
+        self.assertTrue(report["capabilities"]["depthFrames"])
+        self.assertEqual(report["strategy"], "own-ply-photo-depth-segmentation")
+
+    def test_index_without_camera_calibration_is_not_a_posed_photo(self):
+        path = make_zip(self.directory, extra={
+            "Room/photos/photos.json": json.dumps([{"room": 4, "file": "photos/0001.jpg"}]),
+            "Room/photos/0001.jpg": "photo"})
+        report = probe(path)
+        self.assertFalse(report["capabilities"]["posedPhotos"])
 
     def test_raw_room_data_only_when_manifest_and_file_agree(self):
         path = make_zip(self.directory,

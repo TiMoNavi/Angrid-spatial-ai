@@ -136,11 +136,11 @@
 
       // This experiment opens the latest usable iPhone scan by default. Explicit
       // project IDs and iOS handoff links keep their original OpenPlan3D flow.
-      const savedScan = /^experiment15-(office-(?:1|2|2-rescan))-registered-v1$/.exec(url.searchParams.get('id') ?? '')?.[1];
+      const savedScan = /^experiment15-([a-z0-9][a-z0-9-]{0,63})-registered-v1$/.exec(url.searchParams.get('id') ?? '')?.[1];
       const scan = url.searchParams.get('scan') ?? savedScan
         ?? (!url.searchParams.has('id') && !url.searchParams.has('import') ? 'office-2-rescan' : null);
       if (scan) {
-        if (scan !== 'office-1' && scan !== 'office-2' && scan !== 'office-2-rescan') throw new Error('未知的本地扫描。');
+        if (!/^[a-z0-9][a-z0-9-]{0,63}$/.test(scan)) throw new Error('扫描 ID 格式无效。');
         // Version this local project because the previous import had orthogonalized
         // the walls, while scan evidence is registered to the original capture.
         // Keeping its old ID avoids overwriting any edits made in that project.

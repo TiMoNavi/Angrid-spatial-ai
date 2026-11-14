@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Photo semantic hints v1 — review only",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "scanId", "hints", "unresolvedNotes"],
+  "properties": {
+    "schemaVersion": { "type": "integer", "enum": [1] },
+    "scanId": { "type": "string" },
+    "hints": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["photoId", "category", "confidence", "bboxNorm", "positivePointsNorm", "negativePointsNorm", "reason"],
+        "properties": {
+          "photoId": { "type": "string" },
+          "category": { "type": "string" },
+          "confidence": { "type": "string", "enum": ["low", "medium", "high"] },
+          "bboxNorm": { "type": "array", "items": { "type": "number" } },
+          "positivePointsNorm": { "type": "array", "items": { "type": "array", "items": { "type": "number" } } },
+          "negativePointsNorm": { "type": "array", "items": { "type": "array", "items": { "type": "number" } } },
+          "reason": { "type": "string" }
+        }
+      }
+    },
+    "unresolvedNotes": { "type": "array", "items": { "type": "string" } }
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "experiment": "15_scan_instance_recognition_import",
+  "updatedLocalDate": "2026-11-14",
+  "rule": "Only mark complete after artifacts and validation exist; never store scan payloads or API credentials here.",
+  "tasks": [
+    {"id":"E15-00","title":"Independent editor baseline","status":"complete","dependsOn":[],"evidence":"openplan isolated; check 0/0, 42 tests, build passed"},
+    {"id":"E15-02","title":"Independent Git rollback checkpoint","status":"complete","dependsOn":["E15-00"],"evidence":"This experiment-only Git commit; locate with git log -- experiment/实验15_扫描识别切分与自动导入"},
+    {"id":"E15-01","title":"Copy and extend upstream scan skill","status":"complete","dependsOn":[],"evidence":"skill-baseline/SOURCE.md and .agents/skills/scan-to-instance-proposals/SKILL.md"},
+    {"id":"E15-09","title":"Safe ZIP capability preflight","status":"complete","dependsOn":["E15-00"],"evidence":"importer/probe_bundle.py; real Office 2 and seven synthetic tests passed"},
+    {"id":"E15-10","title":"Generalized ZIP importer and capability manifest","status":"pending","dependsOn":["E15-00"],"acceptance":"Office 2 and second scan import without fixed paths or hashes"},
+    {"id":"E15-20","title":"Source-face instance ledger and geometry candidates","status":"complete","dependsOn":["E15-01"],"evidence":"pipeline 8 synthetic tests; Office 2 380576 source faces conserved, 54 unnamed review candidates, old owners unchanged"},
+    {"id":"E15-21","title":"Photo hints projected to original PLY faces","status":"pending","dependsOn":["E15-20"],"acceptance":"pose/intrinsics/depth occlusion and sensor orientation tested"},
+    {"id":"E15-22","title":"Reviewable conflicts inside wrong RoomPlan OBBs","status":"pending","dependsOn":["E15-21"],"acceptance":"chair/table boundary and overlapping OBB faces proposed without automatic owner overwrite"},
+    {"id":"E15-30","title":"Codex semantic hint worker with mocked endpoint","status":"complete","dependsOn":["E15-01"],"evidence":"ai_worker schema and adapter; nine mocked tests; no live provider request"},
+    {"id":"E15-31","title":"Live provider compatibility smoke test","status":"pending","dependsOn":["E15-30"],"acceptance":"explicit model ID and Responses compatibility verified without persisting credentials"},
+    {"id":"E15-40","title":"One owner-aware editable voxel layer","status":"pending","dependsOn":["E15-20","E15-21","E15-22"],"acceptance":"accepted instances share one grid; evidence and inferred geometry retain provenance"},
+    {"id":"E15-41","title":"Editor import job and review UI","status":"pending","dependsOn":["E15-10","E15-30","E15-40"],"acceptance":"progress, cancel, accept/reject, undo, save and reload"},
+    {"id":"E15-50","title":"Office 2 and degraded-scan QA, commit and push","status":"pending","dependsOn":["E15-41"],"acceptance":"end-to-end Edge checks, private data excluded, rollback commit recorded"}
+  ]
+}

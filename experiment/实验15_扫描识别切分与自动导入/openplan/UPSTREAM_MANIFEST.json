@@ -1,0 +1,1348 @@
+{
+  "source": "https://github.com/laanlabs/openPlan3D",
+  "revision": "b0727b54da5f0f642722dcc88cc52d7236fadc9e",
+  "license": "MIT, see LICENSE",
+  "note": "Hashes describe original copied files before experiment changes; model/texture assets and example scan JSON are excluded.",
+  "files": [
+    {
+      "source": "reference/openPlan3D/.gitignore",
+      "target": ".gitignore",
+      "sha256": "2cc36b143235ad5668502ca331050ab2aff85a0b39e91b7d2d9d2569e666c60c"
+    },
+    {
+      "source": "reference/openPlan3D/.npmrc",
+      "target": ".npmrc",
+      "sha256": "7151cf397def0c2cb0ab65643701d27d335a72c90f775675b5f826bc7005818a"
+    },
+    {
+      "source": "reference/openPlan3D/.nvmrc",
+      "target": ".nvmrc",
+      "sha256": "68ca3fba3b7e864770cb61aeb306d4bd4354b68ab4dd38450860c5d823e42a53"
+    },
+    {
+      "source": "reference/openPlan3D/LICENSE",
+      "target": "LICENSE",
+      "sha256": "30228141977aae075d3a50caa11574a12dbc6f69c2bb207d618c8ea2ffa4a83c"
+    },
+    {
+      "source": "reference/openPlan3D/package-lock.json",
+      "target": "package-lock.json",
+      "sha256": "ff4c1bb50e457e1f45e9548971d355a1bec34ac52660207d4d38f9c646cfa2ca"
+    },
+    {
+      "source": "reference/openPlan3D/package.json",
+      "target": "package.json",
+      "sha256": "7b675136cfcf7250b0fb611c2db782d2dc295112ba0e1e0ffa6a592940527c0b"
+    },
+    {
+      "source": "reference/openPlan3D/src/app.css",
+      "target": "src/app.css",
+      "sha256": "fc3d0320a4c031b5e153d0d931088d9348dcb4fc93fa44deff595e6f22df723d"
+    },
+    {
+      "source": "reference/openPlan3D/src/app.d.ts",
+      "target": "src/app.d.ts",
+      "sha256": "3d450fc2fc7b0f10b6a9493a682769aac34f8b612f0f5d1bc4845a7b0bfe9f0a"
+    },
+    {
+      "source": "reference/openPlan3D/src/app.html",
+      "target": "src/app.html",
+      "sha256": "5361fb95aa58363445cfffcdfbd7c6746bd7f9032c1643a89fd4d3df34f2c407"
+    },
+    {
+      "source": "reference/openPlan3D/src/catalog-assets.d.ts",
+      "target": "src/catalog-assets.d.ts",
+      "sha256": "c4290f16f8f2e767a77cbc74ab12f69531ffabb55450554e0092291daf1f2e7c"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/assets/favicon.svg",
+      "target": "src/lib/assets/favicon.svg",
+      "sha256": "d7d9227f0fe5bfb4189fb6ba4dd9e2d524f6a1dfd02bd901c65330987675c0b3"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/components/AssistantShareDialog.svelte",
+      "target": "src/lib/components/AssistantShareDialog.svelte",
+      "sha256": "7b4b14e851e4c225a2e95181834e43a9458a1e1fe212b7ae8b7fdfd5a1b44d2b"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/components/DeploymentNotice.svelte",
+      "target": "src/lib/components/DeploymentNotice.svelte",
+      "sha256": "10ad9d6f955390cf52960d0b740653548d31d73dd92ca5c2b97bb6ee633ce83a"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/components/ExportNotice.svelte",
+      "target": "src/lib/components/ExportNotice.svelte",
+      "sha256": "7d23d22efcbeebbf31058b9cc948f6ccb3b689a618ef924b5272b10baa523348"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/components/ImportError.svelte",
+      "target": "src/lib/components/ImportError.svelte",
+      "sha256": "8dec587fcfabc35e015587885723adcecb8fc941423b7720ca992a2bbb50b315"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/components/LibraryRestoreDialog.svelte",
+      "target": "src/lib/components/LibraryRestoreDialog.svelte",
+      "sha256": "16fbc8f10a61f8c121ebd427b335f349033ffbecb00884bfcbb25680c220e6da"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/components/LibraryStorageNote.svelte",
+      "target": "src/lib/components/LibraryStorageNote.svelte",
+      "sha256": "8326b6388f6112064bd914eec6ca20e4e4b68e22365cd7df72516071a19b3564"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/components/OnboardingTooltip.svelte",
+      "target": "src/lib/components/OnboardingTooltip.svelte",
+      "sha256": "c397d20eeee878a317686e58904e4a51d4059ec74ec7c61789fd55b11ce9a771"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/components/ProjectActionsMenu.svelte",
+      "target": "src/lib/components/ProjectActionsMenu.svelte",
+      "sha256": "1c94eaa21758cee7c1945afd227b8385cac7afa5d1f7d5c3229c2a6bcbe0c974"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/components/ProjectPackageDialog.svelte",
+      "target": "src/lib/components/ProjectPackageDialog.svelte",
+      "sha256": "8019c7616fbf13ee08ed5b5fe0de9f4b6dbb4a5638a78aaa335848c52e5f22e6"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/components/WelcomeScreen.svelte",
+      "target": "src/lib/components/WelcomeScreen.svelte",
+      "sha256": "3c51614bee7102655f33d9eee1f8d670386e1c0cfbc346193f4e437e193b6de2"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/components/ai/OpenAIModelPicker.svelte",
+      "target": "src/lib/components/ai/OpenAIModelPicker.svelte",
+      "sha256": "448522181f92a8bd15feecf5a0bdd97ee42ef29aac2287194235ef4edb1176a9"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/components/ai/OpenAISettings.svelte",
+      "target": "src/lib/components/ai/OpenAISettings.svelte",
+      "sha256": "d604cd255b666375fd8d24612d0f0dcce1b8584de4b8eba9e7c232e03c71dd26"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/components/editor/AlignmentToolbar.svelte",
+      "target": "src/lib/components/editor/AlignmentToolbar.svelte",
+      "sha256": "85dafeab39b690161b89d6bba8ba7ffbfab568d6c8ffb1c28bc7dc76b8ea084c"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/components/editor/CommandPalette.svelte",
+      "target": "src/lib/components/editor/CommandPalette.svelte",
+      "sha256": "2d0efac0b2027e69642d6493ebba9c8092ffb9ef01c5043bdf0883c5e6b790fa"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/components/editor/ContextMenu.svelte",
+      "target": "src/lib/components/editor/ContextMenu.svelte",
+      "sha256": "6550f07350e981c14f145880628bb4a4f92231f4c197e0df1f4ea2f84ecdded8"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/components/editor/ContextToolbar.svelte",
+      "target": "src/lib/components/editor/ContextToolbar.svelte",
+      "sha256": "dc2d9334fc306442161f798c797bb1ff5e25363e8e5513e2595e5605e95fb4c6"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/components/editor/ElevationView.svelte",
+      "target": "src/lib/components/editor/ElevationView.svelte",
+      "sha256": "a5149f20b99942fbe2d439953e8803465e92569de0494e9577c4f0838f152a02"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/components/editor/FloorPlanCanvas.svelte",
+      "target": "src/lib/components/editor/FloorPlanCanvas.svelte",
+      "sha256": "34a73785522ae8cc17bbbd5b12256ef394427c1def68c08abe74e16335520da8"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/components/editor/PrintLayout.svelte",
+      "target": "src/lib/components/editor/PrintLayout.svelte",
+      "sha256": "3126030b610de70a484471cc47e81c837b2dd367ca40acb878d10c7703029d52"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/components/editor/UndoHistoryPanel.svelte",
+      "target": "src/lib/components/editor/UndoHistoryPanel.svelte",
+      "sha256": "39fac53333ad7a5de91194226e947b0869ee0c1f2f4b7c355d2f70371ceb91cf"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/components/sidebar/AreaSummaryPanel.svelte",
+      "target": "src/lib/components/sidebar/AreaSummaryPanel.svelte",
+      "sha256": "27634ed701a1faca7668b1a88cd01c92f7ff903a0743e2c8482df800a45fcfac"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/components/sidebar/BuildPanel.svelte",
+      "target": "src/lib/components/sidebar/BuildPanel.svelte",
+      "sha256": "96fa6a267f36f9b596b85e4815a3f9fb5e2dd14f7a65a9c0df77ad80d93eb831"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/components/sidebar/CustomModelPanel.svelte",
+      "target": "src/lib/components/sidebar/CustomModelPanel.svelte",
+      "sha256": "86258060ca4581c0415d5d73b7bacce3ebbda750d68070071c66c14c0b350d17"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/components/sidebar/CustomModelPreview.svelte",
+      "target": "src/lib/components/sidebar/CustomModelPreview.svelte",
+      "sha256": "a13d24411e20d85ecd6a43f7284654ad95652185740c549fedb7fd87ef98b106"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/components/sidebar/FurnitureThumbnail.svelte",
+      "target": "src/lib/components/sidebar/FurnitureThumbnail.svelte",
+      "sha256": "4cb36121d3eb955e85fbc27a52f23100748cd0efbc65b98548f495a1267d082c"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/components/sidebar/ItemDetailsPanel.svelte",
+      "target": "src/lib/components/sidebar/ItemDetailsPanel.svelte",
+      "sha256": "d785335078651deff0237a5b3b89712b15b67d4772310030a6f04bed1d2983f7"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/components/sidebar/LayersPanel.svelte",
+      "target": "src/lib/components/sidebar/LayersPanel.svelte",
+      "sha256": "8990a6d60739817e12bd5d698a8c7b1fb3342ace1f885ad741e9ea6dc7a5d577"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/components/sidebar/PropertiesPanel.svelte",
+      "target": "src/lib/components/sidebar/PropertiesPanel.svelte",
+      "sha256": "57ddea636114c0c458b7303b9ef22191db15afba8b5cf70dfcd13f53ff1053d0"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/components/toolbar/FloorElevations.svelte",
+      "target": "src/lib/components/toolbar/FloorElevations.svelte",
+      "sha256": "042b1d3c4fba2265a68635b873c428ba6f0bc1494ad9b5b28247f60609b71792"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/components/toolbar/SettingsDialog.svelte",
+      "target": "src/lib/components/toolbar/SettingsDialog.svelte",
+      "sha256": "47d50815569fbf015ac926f2b2d07f965619efdfc6573441c38177a5156863c1"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/components/toolbar/TopBar.svelte",
+      "target": "src/lib/components/toolbar/TopBar.svelte",
+      "sha256": "6941ac13907a7523ee53aa9d0a397e7a69da640a1c64869e80fb16352a7d3e8c"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/components/toolbar/VersionHistoryPanel.svelte",
+      "target": "src/lib/components/toolbar/VersionHistoryPanel.svelte",
+      "sha256": "e41741f13f0c7744cdadd0821742203d2e5b3348d72a346aa7866e9f18fd2157"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/components/viewer3d/ThreeViewer.svelte",
+      "target": "src/lib/components/viewer3d/ThreeViewer.svelte",
+      "sha256": "10c7f793b61a23ea9a46653a3090de2bd80ccd1b1123cd780593cac910a4fd32"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/firebase.ts",
+      "target": "src/lib/firebase.ts",
+      "sha256": "bc1d60f48a4d35c10bcaa094dc47d6bfb9f4b1087ad1aeee497cecfd0d4189d7"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/i18n/aiRenderLabels.ts",
+      "target": "src/lib/i18n/aiRenderLabels.ts",
+      "sha256": "12418f0a15271ab3713376b5496f2208518d190ac3f32669d0cda3386fba7825"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/i18n/aiRenderMessages.ts",
+      "target": "src/lib/i18n/aiRenderMessages.ts",
+      "sha256": "e7435961855c546045ac1101de2f6699844a5104903ac939059b0766de037d95"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/i18n/captureImportError.ts",
+      "target": "src/lib/i18n/captureImportError.ts",
+      "sha256": "527ef66dae7a362819c4f272415cf44eee9b0aabf75ee8d0913518b3dad87a7e"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/i18n/catalogCategories.ts",
+      "target": "src/lib/i18n/catalogCategories.ts",
+      "sha256": "791ec2d81e294fe586d6602b8e83193df429f263f56bbc0f960bbc8d97853ea3"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/i18n/customModelMessages.ts",
+      "target": "src/lib/i18n/customModelMessages.ts",
+      "sha256": "2705e4b42663f2936798043dda2d3ec578c446e5297890ea8c06a5a229c9079d"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/i18n/entourageLabels.ts",
+      "target": "src/lib/i18n/entourageLabels.ts",
+      "sha256": "cee389b25d0af31371a357608c5ad58774a7ec3c0c0848282de6c474d4312455"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/i18n/furnitureNames.ts",
+      "target": "src/lib/i18n/furnitureNames.ts",
+      "sha256": "a07c33c11ec17ec77d4cc6e86f3ccbcb15aed799e2875f7359959ceb2647c856"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/i18n/index.ts",
+      "target": "src/lib/i18n/index.ts",
+      "sha256": "26982f90e483cc4c3563889a8341202be0c8c3e92f05d1870aac6769abf465e8"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/i18n/itemDetailLabels.ts",
+      "target": "src/lib/i18n/itemDetailLabels.ts",
+      "sha256": "9a732e8198b5b07376dbb100d6ce1884d5504369d6e5af79ca09f5f0de15862a"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/i18n/itemDetailMessages.ts",
+      "target": "src/lib/i18n/itemDetailMessages.ts",
+      "sha256": "10e4bb5d25562ee0cc4094fc764910b8c4c446b96aca7defe6201f96f418195b"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/i18n/locales/en.ts",
+      "target": "src/lib/i18n/locales/en.ts",
+      "sha256": "2e99b01a1ea55560260e005dd26e9fc9f905f033bae0f42326503f0bdacf25fe"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/i18n/locales/pt.ts",
+      "target": "src/lib/i18n/locales/pt.ts",
+      "sha256": "93a8826ad4bfb010b6c2a6142a0763e07330c260940b1044930426c98aa28774"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/i18n/projectServiceMessages.ts",
+      "target": "src/lib/i18n/projectServiceMessages.ts",
+      "sha256": "bf8636e0d2b5c9e85179924be27cf1ee8a07e188c2d6eb79993eb94df6ca9d56"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/i18n/projectValidationMessages.ts",
+      "target": "src/lib/i18n/projectValidationMessages.ts",
+      "sha256": "34f1c96092e6498c17fc023c7e501a747dbbc2cddd284d048f76b2391e7af8e3"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/i18n/roomLabels.ts",
+      "target": "src/lib/i18n/roomLabels.ts",
+      "sha256": "e0a434bd1613e48ff7a008d511d28419be545c1e691b381e13b2c0143eeb3ca8"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/i18n/roomPropertyLabels.ts",
+      "target": "src/lib/i18n/roomPropertyLabels.ts",
+      "sha256": "14a25d0311af5c10dc81b7285e5fd394bd85c36c4b1348f2bbf138fdd250db71"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/i18n/templateLabels.ts",
+      "target": "src/lib/i18n/templateLabels.ts",
+      "sha256": "cf134edbb5a9f6da7f5f70ab7fb5b8c833a6378531d4dfb57b7ead01da824de8"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/i18n/undoMessages.ts",
+      "target": "src/lib/i18n/undoMessages.ts",
+      "sha256": "dff9320482ccc7ca38201b7c9db74e05979a7777443b3fef213fb1545383bcaa"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/i18n/wallMaterialLabels.ts",
+      "target": "src/lib/i18n/wallMaterialLabels.ts",
+      "sha256": "1beae4d5192df19fc63d1fc9728e8f12fe54b70c8f189e8ae538b3595eb04229"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/index.ts",
+      "target": "src/lib/index.ts",
+      "sha256": "4beec0ade3bea5be651939b305bccf69d48506c74eda0a1a50a0dd6c79c4e91a"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/models/types.ts",
+      "target": "src/lib/models/types.ts",
+      "sha256": "22649a10356f7b7fd5ab23da8973196d61788e87ab098c78eb7d126564e0e5f1"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/renderLab/glb.ts",
+      "target": "src/lib/renderLab/glb.ts",
+      "sha256": "e0bb30706e394b9cf3dd303953cea65fdc817bef7f34356920fd75077cd68ffd"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/renderLab/viewer.ts",
+      "target": "src/lib/renderLab/viewer.ts",
+      "sha256": "a3f10f50a315e7c4c4a8529d12f1454d55865a1c3d1f3c6277f43eeae10e32dd"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/server/agentBridge.ts",
+      "target": "src/lib/server/agentBridge.ts",
+      "sha256": "9702d5800917e12f153d663ea2710cc9f48dc1d0ebed140402d15a216a3ee716"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/server/agentBridgeGuard.ts",
+      "target": "src/lib/server/agentBridgeGuard.ts",
+      "sha256": "4f2d8598a3c1d12e8dba62ab9edbbac2b0ea054a7df37e96c0d5018e843518dd"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/server/agentBridgeMcp.ts",
+      "target": "src/lib/server/agentBridgeMcp.ts",
+      "sha256": "0d2f0540cfc82117b341cb80be483a8d80cd4e28867ef9725bf3149171f3abd8"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/server/assistantMcp.ts",
+      "target": "src/lib/server/assistantMcp.ts",
+      "sha256": "1df2cc296ccf6d324699a629c6de119f22e069caaea9de3032a9a8c84da34863"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/server/assistantShareRoutes.ts",
+      "target": "src/lib/server/assistantShareRoutes.ts",
+      "sha256": "1b094a859c52e86843cd919efa28a9bec4de9b6df655b25922db47a49c6cf6c1"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/server/assistantShares.ts",
+      "target": "src/lib/server/assistantShares.ts",
+      "sha256": "6a3e6009a21b6ef542cc1f8224812ffe513d176438479e9f61aeb6d34f4c6a7d"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/server/handoffCors.ts",
+      "target": "src/lib/server/handoffCors.ts",
+      "sha256": "b5b1971570206bc9543d1bb1aa0360fc5c8c10939399235645cfeba301cb869c"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/server/handoffQuota.ts",
+      "target": "src/lib/server/handoffQuota.ts",
+      "sha256": "0e2d634d18fcf2892dcc56e6bdfc4133a1c7f3c2eb042560c43c6fd34503f800"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/server/handoffStorage.ts",
+      "target": "src/lib/server/handoffStorage.ts",
+      "sha256": "64a7af3d09739fcd711fc8c6aa3d854ddc5c2c93fd76fbdc08b4681001bead55"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/server/handoffUpload.ts",
+      "target": "src/lib/server/handoffUpload.ts",
+      "sha256": "53fc824476687b5a0ca7506491afbc6515ce3722cb71d7392b02f435ebe92b1d"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/services/agentBridge.ts",
+      "target": "src/lib/services/agentBridge.ts",
+      "sha256": "998fb239a3732136585423b87a39e4daa74c8cdb45c71bd23f9e99b8cf907412"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/services/assistantShare.ts",
+      "target": "src/lib/services/assistantShare.ts",
+      "sha256": "e0a85982d30717b9c67b8560bdadbc8c5106f00e27f9de7f28472ee50c7dcf70"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/services/customModelImport.ts",
+      "target": "src/lib/services/customModelImport.ts",
+      "sha256": "f19224a3f3bd17993817ac5a8df988559e9f28c00a85154e4d839d05cae748ed"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/services/customModelLoader.ts",
+      "target": "src/lib/services/customModelLoader.ts",
+      "sha256": "e67fd624b1307309c1116636049f2586c32ee60044878cbc8523c3c24099459f"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/services/customModelResources.ts",
+      "target": "src/lib/services/customModelResources.ts",
+      "sha256": "3fa4b9d4bb3435075cf1ba41f129c347823fd3652c4b6f5cf02f2ab499afeb5d"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/services/customModelSource.ts",
+      "target": "src/lib/services/customModelSource.ts",
+      "sha256": "c4e66e6c2a8f77a0e3f72725602c5695eb46c4703fd5927586937537b984c030"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/services/customModels.ts",
+      "target": "src/lib/services/customModels.ts",
+      "sha256": "f1d6d3ff6904a598bc043701d0e96f69a360c55ec91428cfbf07f2e57150eb12"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/services/datastore.ts",
+      "target": "src/lib/services/datastore.ts",
+      "sha256": "bfc5cbf699dad7067674e052d930c0409b648dd40080332593effb308297fb47"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/services/deployment.ts",
+      "target": "src/lib/services/deployment.ts",
+      "sha256": "1fba5db89edfecb444269773a8326f925c9edf72e5271336f7d9823bdaf4918c"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/services/deploymentVersion.ts",
+      "target": "src/lib/services/deploymentVersion.ts",
+      "sha256": "96ac92ed954e69cff1511b9abed4a75b36d9060303dd930a35053bc21d20da76"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/services/itemPhotos.ts",
+      "target": "src/lib/services/itemPhotos.ts",
+      "sha256": "cb2b02357bf7f7c5277325facd72763edd1f24ac5fc44d4646bcde0638cb8687"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/services/libraryRestore.ts",
+      "target": "src/lib/services/libraryRestore.ts",
+      "sha256": "82b2f1b22c0209513c8014b682517c1fe5ce29907178aa5ff078e9cbf39f83a1"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/services/localDatabase.ts",
+      "target": "src/lib/services/localDatabase.ts",
+      "sha256": "5212c285b8342298f97ee94667d0173746b12f8b93207368c59708751bee6425"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/services/projectOpening.ts",
+      "target": "src/lib/services/projectOpening.ts",
+      "sha256": "63d65821988e507269e6a25f0c3f736acb6a793867c07b802926377c0e113dc0"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/services/projectPackage.ts",
+      "target": "src/lib/services/projectPackage.ts",
+      "sha256": "ab738afde456dbbf915208dac9ef00c7ec49e337e08613cbebcafc8b0ee8a67e"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/services/storagePersistence.ts",
+      "target": "src/lib/services/storagePersistence.ts",
+      "sha256": "783db56c172ed7a8165d91c28ebc1e47a6d8c99883f560df52a15f770f67020e"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/skills/handoff.ts",
+      "target": "src/lib/skills/handoff.ts",
+      "sha256": "dd9e8dac426c4461d12c9784399089d62899eece16f4eed71e471a57b68d1569"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/skills/index.ts",
+      "target": "src/lib/skills/index.ts",
+      "sha256": "d43993388edd66f9bd62ff65a285ad8634e40b46a1d6e12d7b48022397250ea7"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/skills/photos.ts",
+      "target": "src/lib/skills/photos.ts",
+      "sha256": "49d8fad37129a91d48cef71601c619654d5ea970b06801059f9a67556ec85792"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/skills/shared.ts",
+      "target": "src/lib/skills/shared.ts",
+      "sha256": "35ead5852438bee2179541dd4b2d1bd3e977f670bbaa639f7f77126a22279368"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/skills/summary.ts",
+      "target": "src/lib/skills/summary.ts",
+      "sha256": "0a616207d402d26c1062c1134a493e2163b7041bae72b79ea87c2ecba27d0ab4"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/stores/aiKeys.ts",
+      "target": "src/lib/stores/aiKeys.ts",
+      "sha256": "fa5b1ecf4c048c61f63021509b47caa60444e1ee249325404dc135a992bb123a"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/stores/exportNotice.ts",
+      "target": "src/lib/stores/exportNotice.ts",
+      "sha256": "f09e1f8dc36d114235a7920bfaf6c9101afe95efae051a5c6874eed7dc591d64"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/stores/onboarding.svelte.ts",
+      "target": "src/lib/stores/onboarding.svelte.ts",
+      "sha256": "19f03ea3c21ea14a49c54f453512f732f802b3d2f5c364d97455cc0c0db93d71"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/stores/planVisibility.ts",
+      "target": "src/lib/stores/planVisibility.ts",
+      "sha256": "ed1a0a58ce33a2b24f42b282e07971bc7f4aadde8aa833b92a342110a96e5d4e"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/stores/project.ts",
+      "target": "src/lib/stores/project.ts",
+      "sha256": "ebcaf81612f682e871bbc72108641afd4a98eaa1b77b36cfd74ef743d8504fe4"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/stores/saveStatus.ts",
+      "target": "src/lib/stores/saveStatus.ts",
+      "sha256": "9926eea21687b6f6e2e35d37af3c82e67dc44e4f1f0a141b6038ddc9209a76cc"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/stores/settings.ts",
+      "target": "src/lib/stores/settings.ts",
+      "sha256": "e062cc645dbf14325c5a58d199ce0c9872918b0c82e9364dbb5f1242e298e07b"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/stores/theme.ts",
+      "target": "src/lib/stores/theme.ts",
+      "sha256": "106679a05d4dbe20313ac42e7bc01996c0a908aa95bdb1a603267bcef3c7eda7"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/stores/versionHistory.ts",
+      "target": "src/lib/stores/versionHistory.ts",
+      "sha256": "01731a6daf649f6de09cc2dbde938a5047b40538f338106b8f5f342207b0431f"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/agentOps.ts",
+      "target": "src/lib/utils/agentOps.ts",
+      "sha256": "5f6d187e4b266e351edc3294ead0310b52bb61017cd46e4ce4c63dddd47a4d6b"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/alignment.ts",
+      "target": "src/lib/utils/alignment.ts",
+      "sha256": "e9397d4e258d4c98eb6892dafa4b48d3858c7f3991f21d506e76710e1ca76294"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/cadExport.ts",
+      "target": "src/lib/utils/cadExport.ts",
+      "sha256": "b20d9b9c161a2d71a709eeaa14e56f98d1202655a5e58b310192c2fbe904b301"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/canvasInteraction.ts",
+      "target": "src/lib/utils/canvasInteraction.ts",
+      "sha256": "2831223441d2d90b8379b9d92988fc77b3a320af573001ae3e7adc18c97aaf82"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/canvasPNG.ts",
+      "target": "src/lib/utils/canvasPNG.ts",
+      "sha256": "2b47c8d3affe4901fa48a8af49ce5198ec208e4453e0edb82fa377f5be1e01d1"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/canvasRenderer.ts",
+      "target": "src/lib/utils/canvasRenderer.ts",
+      "sha256": "dcb715007ca3cf3bb561f2bebfd659ec5708175943cfd9b4c5874a754368482a"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/canvasSymbolDxf.ts",
+      "target": "src/lib/utils/canvasSymbolDxf.ts",
+      "sha256": "baed589258626fc85d3de9dea10d0da168dc4dd90e1aed53fb0d30d2518d2dad"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/canvasSymbolSvg.ts",
+      "target": "src/lib/utils/canvasSymbolSvg.ts",
+      "sha256": "73e4ccd4af527ddb6fba140da059f8be2256857aa777be97d5ac495d3ac32494"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/captureMain3D.ts",
+      "target": "src/lib/utils/captureMain3D.ts",
+      "sha256": "444c5f57e49c08b76573885cb64425c5c79ca2a72488e7c4e39cbb193c6190f4"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/catalogAssetUrl.ts",
+      "target": "src/lib/utils/catalogAssetUrl.ts",
+      "sha256": "2eb0d7114aaf4ea0382cf4ba6ded92f8565ce7324e4edcd0b1c96d13429f4ad4"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/columnGeometry.ts",
+      "target": "src/lib/utils/columnGeometry.ts",
+      "sha256": "344c090b9d7afd78e345def9135bacc068b2418bfe32240f861127ba30991d84"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/columnPlanGeometry.ts",
+      "target": "src/lib/utils/columnPlanGeometry.ts",
+      "sha256": "abb63655d2160455a1c648863f8102324208063f647a30dae54d2e51eb44c404"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/customModelDefinitions.ts",
+      "target": "src/lib/utils/customModelDefinitions.ts",
+      "sha256": "0eda06d5e7ad153252c4545bd0f087c9b9bd920afcd8dfe9e9f3774a31a374bf"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/depthOrder.ts",
+      "target": "src/lib/utils/depthOrder.ts",
+      "sha256": "9d4023a2aba0a781b655ee121cd84a43155a7450800e7196dd34f7318e09c14e"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/dimensionPlanGeometry.ts",
+      "target": "src/lib/utils/dimensionPlanGeometry.ts",
+      "sha256": "18e222559429a7d9241c630456bfb05288849eb5857eff59c9be426b38d3c38e"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/doorStyle.ts",
+      "target": "src/lib/utils/doorStyle.ts",
+      "sha256": "7e1c372646519c81d6f1185e8e726219e5eece13ee75828a131d3578047e77ee"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/doorSymbol.ts",
+      "target": "src/lib/utils/doorSymbol.ts",
+      "sha256": "8d53be3ec9667a49040b7b7a7f227a17bfa8845adebbed6c8c6f83bdf015f466"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/drawScheduler.ts",
+      "target": "src/lib/utils/drawScheduler.ts",
+      "sha256": "c3d39fe13d85186325cc246edc6f115267308bc0c1dab84598e8f5a61bd1e9d5"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/duplicateSelection.ts",
+      "target": "src/lib/utils/duplicateSelection.ts",
+      "sha256": "f2e51042f392ee5d0410922088a2b0ff4c56c4fd707e83eb7b5a0b8b4538a8ba"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/entourageCatalog.ts",
+      "target": "src/lib/utils/entourageCatalog.ts",
+      "sha256": "43ed1623b5604682288119443ac4594a43ea2f1086c3f736e169ee898bcb1448"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/entourageDxf.ts",
+      "target": "src/lib/utils/entourageDxf.ts",
+      "sha256": "24d43e9e04db7bb2a7cac6332b63c888b666369a04604dc1edea470689a1a7f8"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/entourageImages.ts",
+      "target": "src/lib/utils/entourageImages.ts",
+      "sha256": "5322176b7ecc461f86849adc26dc2640c194d652fc8025ced1ab8949395a29f7"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/entouragePlanBounds.ts",
+      "target": "src/lib/utils/entouragePlanBounds.ts",
+      "sha256": "6ee3c0dbd7568674d6da12a106fcf05bc8ba0fe6ea48b9623326915174d78624"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/export.ts",
+      "target": "src/lib/utils/export.ts",
+      "sha256": "b38f30a6e4d658dd0c25feb304b32aaf344bff7cf82ced59409acf8fe25cc822"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/exportText.ts",
+      "target": "src/lib/utils/exportText.ts",
+      "sha256": "6e538c2344000c08b693f96c1d281ab40549901d56d53ae29a866c58499c2420"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/exportVisibility.ts",
+      "target": "src/lib/utils/exportVisibility.ts",
+      "sha256": "1e06de9cae40673c1d966b402e6d0f775dcf2fd072248185d0e3818427ec9ba1"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/floorCamera.ts",
+      "target": "src/lib/utils/floorCamera.ts",
+      "sha256": "e04b74cd8a909ef623bb1b05c8de97ef7079fa24b3d8d13ea1c5df5fbd567a5a"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/floorStack.ts",
+      "target": "src/lib/utils/floorStack.ts",
+      "sha256": "b6b66f9a7755933da6d8427fbbc67fa8ac6f392926842735f9f8b9e6f0690a0c"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/floors.ts",
+      "target": "src/lib/utils/floors.ts",
+      "sha256": "5bf184a770d9fb1bcf1c492e61fdb76881baff1e0f75837f93223e1c8d351af2"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/frameScene.ts",
+      "target": "src/lib/utils/frameScene.ts",
+      "sha256": "e29573dbfba5a65536b78cd95f230ee003f5dc871587dd930121765b90eba6f8"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/furnitureCaption.ts",
+      "target": "src/lib/utils/furnitureCaption.ts",
+      "sha256": "c836ed735bc7e27737b8b34897de995fae675e59eb9a91f53061c7cb42658a1e"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/furnitureCatalog.ts",
+      "target": "src/lib/utils/furnitureCatalog.ts",
+      "sha256": "b0c848be5ecc67399f2510fb2fdfce9f69aa68981943ecb64c661e767da5c692"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/furnitureCategories.ts",
+      "target": "src/lib/utils/furnitureCategories.ts",
+      "sha256": "281e8a0bf6613b2ae3115e77089f4b94afaacf9219a9e877a977a0b990bf58c4"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/furnitureDxf.ts",
+      "target": "src/lib/utils/furnitureDxf.ts",
+      "sha256": "eb3c1cd332576d67bc39d352573a24182d67996837675aae4c1e81299f7c3177"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/furnitureElevation.ts",
+      "target": "src/lib/utils/furnitureElevation.ts",
+      "sha256": "4468f11446c3275f862fd2b7a5ae4dc824579eeead5cb27606e7744395f3da53"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/furnitureFinishes.ts",
+      "target": "src/lib/utils/furnitureFinishes.ts",
+      "sha256": "29d6eab024b57601ca20c7958bbb217d7e6b553634b9aff42193b5273e85c493"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/furnitureGeometry.ts",
+      "target": "src/lib/utils/furnitureGeometry.ts",
+      "sha256": "d7dc0f4479ef19976d6d84c69e900a46d678dbcd6af5a70c1d3c9655fb4262f3"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/furnitureIcons.ts",
+      "target": "src/lib/utils/furnitureIcons.ts",
+      "sha256": "6922cae6a567a2c6b69558b423ca922679500d040e75aa536484dcf077bae851"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/furnitureModelFiles.ts",
+      "target": "src/lib/utils/furnitureModelFiles.ts",
+      "sha256": "a9f7d34e9de0df716e09b02ecd21b7d6ff578ff9cd661787779f85d0e710d97b"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/furnitureModelLoader.ts",
+      "target": "src/lib/utils/furnitureModelLoader.ts",
+      "sha256": "6a4fdc0b01e8aa01d5bb2da635bde7d545a62f915bad949bc4ba7f20ee2d1033"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/furnitureModelResources.ts",
+      "target": "src/lib/utils/furnitureModelResources.ts",
+      "sha256": "67f83d4deb4a1d3682eae3c84cac730f50d0e29ffd506317ad0dea027877c621"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/furnitureModels3d.ts",
+      "target": "src/lib/utils/furnitureModels3d.ts",
+      "sha256": "528306a87dd0d40eab31219d09aa839ec82bf4e6bd659dd01c8a0ec8dd522be5"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/furniturePlanBounds.ts",
+      "target": "src/lib/utils/furniturePlanBounds.ts",
+      "sha256": "e7d9e36595925ae5d9be8b1112a13118e8bcb785bdbce7627b85ef9cb41edb95"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/furnitureSvg.ts",
+      "target": "src/lib/utils/furnitureSvg.ts",
+      "sha256": "eb33b19450040a7c9ac4f37becc1dcc51280c5a4320b28515b9731f2c07e3352"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/furnitureThumbnails.ts",
+      "target": "src/lib/utils/furnitureThumbnails.ts",
+      "sha256": "ef62c74fb466747723ed84505bc11977f4b33094c615a0ba99a8e49a849cffda"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/hitTesting.ts",
+      "target": "src/lib/utils/hitTesting.ts",
+      "sha256": "6b12823a4515d0ff22d4c6530ce779507af1263aef27307733d456ccc69fc1e9"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/houseTemplates.ts",
+      "target": "src/lib/utils/houseTemplates.ts",
+      "sha256": "e4647520a4c1a58aa2ade6478ea2cfb9241c21f99e87b13b6487d9dbc370361e"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/inlineEditorFocus.ts",
+      "target": "src/lib/utils/inlineEditorFocus.ts",
+      "sha256": "0158c1bef4a9802be9ae0c59bc3d81ccc20ab7cde5cae912382395a5d0e8c7c4"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/interchange.ts",
+      "target": "src/lib/utils/interchange.ts",
+      "sha256": "6b88721baa28d173ff6897ae1d54d5ee8ffc4e51bfa1cf299a5bdb712eb609c3"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/interiorArea.ts",
+      "target": "src/lib/utils/interiorArea.ts",
+      "sha256": "58429f94e0284720c608336bafe1a10b188c668a061a7eff79581aef4ddb4b34"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/itemDetails.ts",
+      "target": "src/lib/utils/itemDetails.ts",
+      "sha256": "fe6d320627b7aa120d9e7067f2726a5716238aa9a00304cc5cc881d2abaf38d4"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/legacyFurnitureCategories.ts",
+      "target": "src/lib/utils/legacyFurnitureCategories.ts",
+      "sha256": "8dcab33c2332db34792d56b4520ecd113701b05724131ff2663a952dd928a71b"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/localGLB.ts",
+      "target": "src/lib/utils/localGLB.ts",
+      "sha256": "e8d5d64e7d8f0a683724c1b604c9e183870ab91e217a0ca5f566d7a6141e091f"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/localGLBAccessors.ts",
+      "target": "src/lib/utils/localGLBAccessors.ts",
+      "sha256": "546c42a6a5ec24736da563333aa7905f09d9d5dc076c839c91ebc296b3e4de3c"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/localGLBExtensions.ts",
+      "target": "src/lib/utils/localGLBExtensions.ts",
+      "sha256": "0b29e81be02e45ede17f3d636780bd56e47b40066f1affa8a4ed19909844f203"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/localGLBGeometry.ts",
+      "target": "src/lib/utils/localGLBGeometry.ts",
+      "sha256": "7a97ce921af11dccc0d0aa556bfeefa35ba960dc248ca7a78b0442c44a123744"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/localGLBImages.ts",
+      "target": "src/lib/utils/localGLBImages.ts",
+      "sha256": "16b1db4621b490f14239eade255f3a28a8becfec0c3d3589941d3ce32665c9e8"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/localGLBMaterials.ts",
+      "target": "src/lib/utils/localGLBMaterials.ts",
+      "sha256": "818da5dd24789d04712400ef3ccee4c5d3ecb259f4c1200f925a202cb6d98de7"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/localGLBRepack.ts",
+      "target": "src/lib/utils/localGLBRepack.ts",
+      "sha256": "89f289b94a600143d6e9be439a46734d52569a5beeff40f921c482e5f1baac1b"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/localGLBResources.ts",
+      "target": "src/lib/utils/localGLBResources.ts",
+      "sha256": "1c63eab545c8c47952df246cb431e135ab431c281f815a8722e8f118412a010f"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/localGLBScene.ts",
+      "target": "src/lib/utils/localGLBScene.ts",
+      "sha256": "b6e0d4fb4568613f442909e474b1b60b62c6901995048b05869d11d9c79157f3"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/marqueeSelection.ts",
+      "target": "src/lib/utils/marqueeSelection.ts",
+      "sha256": "3b5ed295861b68e29dff5a87cf00f4d9541d5963597328aa6c7b3ddd92426a44"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/materials.ts",
+      "target": "src/lib/utils/materials.ts",
+      "sha256": "d0f44be752d825352b7269fa295e11064268ecdbeaf45a4eaec15b0a13767f87"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/modalDialog.ts",
+      "target": "src/lib/utils/modalDialog.ts",
+      "sha256": "56ac25292dea11bb60ba5fd4819c43b5c2339eaf3b6e6a3c9167d60b6ca15c20"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/multiSelectionBounds.ts",
+      "target": "src/lib/utils/multiSelectionBounds.ts",
+      "sha256": "a29825d1f661e569e43b294bcbe724dd41d837fdd9a89c491c04dee6f20d5c74"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/openaiClient.ts",
+      "target": "src/lib/utils/openaiClient.ts",
+      "sha256": "23929115b595e386eaa405a393ea20c49574bdbd160228612efcc54406281091"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/openingAlignment.ts",
+      "target": "src/lib/utils/openingAlignment.ts",
+      "sha256": "dd9c35211b59aeef8efc2b2754486489dd61a54dbf8ebe95b84e957097585a7d"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/openingDrop.ts",
+      "target": "src/lib/utils/openingDrop.ts",
+      "sha256": "7e1e9acd9903376687c8c032301bdfaeffdea87978a5f0b46eff6ad25d28a89f"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/openingFrames.ts",
+      "target": "src/lib/utils/openingFrames.ts",
+      "sha256": "9814b86986634b918c4e39bb8b9235debeede957c267343b55c48f7e85d9e868"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/openingPlanBounds.ts",
+      "target": "src/lib/utils/openingPlanBounds.ts",
+      "sha256": "5aca1d0b0b5601dc79dc95708d16aaff9644588b0d8379929ffc23be2d733012"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/openingTranslation.ts",
+      "target": "src/lib/utils/openingTranslation.ts",
+      "sha256": "77b7a84fa4730adea4b6cdeee2fc3ac2093c05e31336cf4906af91fa8068dd0c"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/orbitDamping.ts",
+      "target": "src/lib/utils/orbitDamping.ts",
+      "sha256": "22a7c53d10eea1473e4aae132ffe8819d2cb8b5755caed8efa7b0d83634d4b2f"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/outerWalls.ts",
+      "target": "src/lib/utils/outerWalls.ts",
+      "sha256": "de7cba871594dd1dc44f34959ff7718becdd128399e8562de09c325eb2ef781a"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/placementArming.ts",
+      "target": "src/lib/utils/placementArming.ts",
+      "sha256": "4f522226df45472309217cb8922a2c4c62115f7f2f8d9e2561b35f3deb80e868"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/planContentBounds.ts",
+      "target": "src/lib/utils/planContentBounds.ts",
+      "sha256": "5e8603cdb6547ca6508f388258b491424b231f852b1e6200c14b10311effdb06"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/planExportContent.ts",
+      "target": "src/lib/utils/planExportContent.ts",
+      "sha256": "af3cb1cedccfc0c27305f15f1a767aaaed3c095d3255c5ca71ad8457f112dbad"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/planOpening.ts",
+      "target": "src/lib/utils/planOpening.ts",
+      "sha256": "6ab07b37d366005f2893276700dc89bbd190cbfd312dad1253fd317d47a61242"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/planStatistics.ts",
+      "target": "src/lib/utils/planStatistics.ts",
+      "sha256": "5b829dfab328d91cecf8059d52d96a582e288c51e8b37ee6ee5545208ce6f458"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/planWallOutline.ts",
+      "target": "src/lib/utils/planWallOutline.ts",
+      "sha256": "a300b6e59224003b73856e3b01bf8a6f5d579e249ce27b0022f299153f767219"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/portableRenderScene.ts",
+      "target": "src/lib/utils/portableRenderScene.ts",
+      "sha256": "2a16c147fb64af154951d224b243670c0431885495295ad6af542345eff90262"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/printLayout.ts",
+      "target": "src/lib/utils/printLayout.ts",
+      "sha256": "b9e3deafa19d87d886e75932a05ce34a2e7f85df418694c054f2df23a2fc597b"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/projectBackup.ts",
+      "target": "src/lib/utils/projectBackup.ts",
+      "sha256": "70695fa6dfd51b1b1fd65fd9171e9a5c9fdc788164964f27f9237f3b5ad6b714"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/projectPackageBridge.ts",
+      "target": "src/lib/utils/projectPackageBridge.ts",
+      "sha256": "ca3debfb931a15af376e176cbff7d65b54ad42dfb459cc9deb9adb61a363516a"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/projectPackageZip.ts",
+      "target": "src/lib/utils/projectPackageZip.ts",
+      "sha256": "640fd70e330a34d40662a3e5a7ef3385463d46cd61264f3967fef6b5d6e7f120"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/projectValidation.ts",
+      "target": "src/lib/utils/projectValidation.ts",
+      "sha256": "f51982b73969513d38fc3dba698b714f0084090082c50b5f34933ae9f9030212"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/rasterHeader.ts",
+      "target": "src/lib/utils/rasterHeader.ts",
+      "sha256": "3865a1baadc8c448393fbc640c9a4d04574b28addc781c8ca792463c1d52c401"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/roomDetection.ts",
+      "target": "src/lib/utils/roomDetection.ts",
+      "sha256": "dc256a11dbcc339a64c07054232ff528eb3d8ee3f067303c814be010e674ac51"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/roomNesting.ts",
+      "target": "src/lib/utils/roomNesting.ts",
+      "sha256": "4154ded53865b07a4bb0f7419af3177282a8bed12a925875c104a9032b8756ee"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/roomPresets.ts",
+      "target": "src/lib/utils/roomPresets.ts",
+      "sha256": "4d85c7eb03ea6b76b81a08cb8f06a116c57be485d1e18d440488a05f2518e73f"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/roomSlabGeometry.ts",
+      "target": "src/lib/utils/roomSlabGeometry.ts",
+      "sha256": "f701760da93329e6eaf9f68c59776760e64943c9f599caa440f54d4a2b72f1a1"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/roomTemplates.ts",
+      "target": "src/lib/utils/roomTemplates.ts",
+      "sha256": "f6086b551b0ddab9ce2b8f2e8bc314acea5beaf10b1121863d3e7115441196dc"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/roomplanImport.ts",
+      "target": "src/lib/utils/roomplanImport.ts",
+      "sha256": "8d74b9e3de6b6ef570316c7a6b40df8b8e9b11bd34e05e9827bace4781cdfa62"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/roomplanMerge.ts",
+      "target": "src/lib/utils/roomplanMerge.ts",
+      "sha256": "eb11e7c5ece2e288e39d4ad336d65b6d12d536197352049b4c24dce175d6c6b8"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/roomplanValidation.ts",
+      "target": "src/lib/utils/roomplanValidation.ts",
+      "sha256": "fe3f75277694b8f545ed22d6eb0e11a00bd3d02590972901bb435b7b80413b16"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/scaledPrint.ts",
+      "target": "src/lib/utils/scaledPrint.ts",
+      "sha256": "047c6ed4f740f977515b56e109ce36adc9cb0da7394b843d6544eb9aaf6e6a4f"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/scanAlignment.ts",
+      "target": "src/lib/utils/scanAlignment.ts",
+      "sha256": "6c6c91d1727e85e6f6ece9c6cc8abe7414279ea17bf314b40b474becc56fa985"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/sceneFraming.ts",
+      "target": "src/lib/utils/sceneFraming.ts",
+      "sha256": "f2aef9d350f332a61d42c62666bdf4c84f9c9782c4632bd039f75d9da5b166a6"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/sceneSignature.ts",
+      "target": "src/lib/utils/sceneSignature.ts",
+      "sha256": "723bcb4c65ce671754168d593f2706f18f427f7ee53f888898b71cf9d048d3be"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/selectionContentBounds.ts",
+      "target": "src/lib/utils/selectionContentBounds.ts",
+      "sha256": "0d3ab64da090376071f189de03f4649adc38a62cee9a63dde8897c589fbe6b40"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/selectionRotation.ts",
+      "target": "src/lib/utils/selectionRotation.ts",
+      "sha256": "08b906706529667bc481e201da7f3162169982ea3f63920b3b22cdce084f7c94"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/shortcuts.ts",
+      "target": "src/lib/utils/shortcuts.ts",
+      "sha256": "ed3bb70d13ae4817f5fed62aadf781c9c9924b02db1c48f3a84d51455328d38e"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/slopedWallGeometry.ts",
+      "target": "src/lib/utils/slopedWallGeometry.ts",
+      "sha256": "0c129402e633e59f2723193e5b147ac9ba4e1ff63b4cbf14aa927a03c9d032cf"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/snapStep.ts",
+      "target": "src/lib/utils/snapStep.ts",
+      "sha256": "2f12f515b8f5fe1185f3d352a6cc07bad62cd750e995d664d03bcaec786f70cf"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/snapshotStorage.ts",
+      "target": "src/lib/utils/snapshotStorage.ts",
+      "sha256": "51a4a69077891007bea7de4a008531517098563d50fa024c0284de0cf560e037"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/splitWallGeometry.ts",
+      "target": "src/lib/utils/splitWallGeometry.ts",
+      "sha256": "733b4e24a005f0a4d6b49d6f2129fed6959cd034499851dae162693b1927e851"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/splitWallRooms.ts",
+      "target": "src/lib/utils/splitWallRooms.ts",
+      "sha256": "f77efdf26a5aac5626601f3998e428967688ac945d3c0c83206de6464e6b64d2"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/stairLevels.ts",
+      "target": "src/lib/utils/stairLevels.ts",
+      "sha256": "7efc56119d8c4fca7e32a8d9caef0ccb170678472f36d29b930594b7aa34bc66"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/stairPlanGeometry.ts",
+      "target": "src/lib/utils/stairPlanGeometry.ts",
+      "sha256": "81b8ea47a069f27b42e6cefc67110ac74a95c84505b5c56fbbf5328f35f6f43f"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/stairwell.ts",
+      "target": "src/lib/utils/stairwell.ts",
+      "sha256": "f55ad0c175c0e99c77a1298c461e93f9232c6f855118e25cde3f6b4881a8178a"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/textAnnotationLayout.ts",
+      "target": "src/lib/utils/textAnnotationLayout.ts",
+      "sha256": "db0f3d07bd363ec639b0064677136372e391c23fdaa3c003183db2c5535eb982"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/textureFiles.ts",
+      "target": "src/lib/utils/textureFiles.ts",
+      "sha256": "4c6abf9e90020554ca11bd284edb4101046503656a0f34bec62654b052c844e4"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/textureGenerator.ts",
+      "target": "src/lib/utils/textureGenerator.ts",
+      "sha256": "e5fff1f6c8e61310865aa35bc7187a1d67ed3277cd702aceeb0424624d9067ec"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/tracingImage.ts",
+      "target": "src/lib/utils/tracingImage.ts",
+      "sha256": "531cbfa89e9e0c2ce465ed51a04e805c7e1b0ed0b062f1ca23245e3a1fb76260"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/transferLink.ts",
+      "target": "src/lib/utils/transferLink.ts",
+      "sha256": "3245a7685ad7542ab059ee8c0a1732c7e84498dc020b45de815b278f384aaa68"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/viewerShadows.ts",
+      "target": "src/lib/utils/viewerShadows.ts",
+      "sha256": "f354926526f1f13ccd0dc629638949cef56f1f4a29305cefbd4b830dd2920a74"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/viewerTextures.ts",
+      "target": "src/lib/utils/viewerTextures.ts",
+      "sha256": "a7dde90ab26defdd30bc9fd48e08ad14ae90694e7022dd7ed574ad9e58445614"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/walkthroughMotion.ts",
+      "target": "src/lib/utils/walkthroughMotion.ts",
+      "sha256": "8701da439aed78e7ffd2bd8381141ad311ff750b934e35b28eb84a60f0099140"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/wallDimensionLabel.ts",
+      "target": "src/lib/utils/wallDimensionLabel.ts",
+      "sha256": "1590ccf512b4833e297fa50f206a2030d8aded982a5cb2276ec08d4e41ce13ff"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/wallEditing.ts",
+      "target": "src/lib/utils/wallEditing.ts",
+      "sha256": "aee1a1503d974e58b0cb0a620dccb09dc9151e4614361fe985086d94a2bb0569"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/wallHighlight.ts",
+      "target": "src/lib/utils/wallHighlight.ts",
+      "sha256": "cd1ac963b04483981ca7cba55d44c9d4c41b073db5e0603b15da64fdc4df9037"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/wallPlanGeometry.ts",
+      "target": "src/lib/utils/wallPlanGeometry.ts",
+      "sha256": "2adc66301cc9f4d24b16c2bb3d5130ab0f395fe2abef2608cc557c0ca1dcfde7"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/wallProfiles.ts",
+      "target": "src/lib/utils/wallProfiles.ts",
+      "sha256": "25aa597c37d42d858f46b0d0646bb793641941e85e3da613aefe586400737802"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/wallProjection.ts",
+      "target": "src/lib/utils/wallProjection.ts",
+      "sha256": "146bc2163eb9066d10b454a5c9b34fd45743a263b6272b0f8c72506a09b57fdf"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/wallTranslation.ts",
+      "target": "src/lib/utils/wallTranslation.ts",
+      "sha256": "13824aa5c064c50fc222415b37cc12e74aa5dcd5a02a92a40687c6c0be0161f1"
+    },
+    {
+      "source": "reference/openPlan3D/src/lib/utils/wallXray.ts",
+      "target": "src/lib/utils/wallXray.ts",
+      "sha256": "bbcf30f9f472a9c53314e097ad58826f9a9e911edae67be149b2cfd57bc2c337"
+    },
+    {
+      "source": "reference/openPlan3D/src/routes/+error.svelte",
+      "target": "src/routes/+error.svelte",
+      "sha256": "b6d8b5ea1a0d85a59d1f46b2dfc56f75fdc22869fe044020b41fb25684ee886f"
+    },
+    {
+      "source": "reference/openPlan3D/src/routes/+layout.svelte",
+      "target": "src/routes/+layout.svelte",
+      "sha256": "e38d1b934febe5b50466da077e60988e22133e9dd4cacaaf1bbc81a5264a46d5"
+    },
+    {
+      "source": "reference/openPlan3D/src/routes/+layout.ts",
+      "target": "src/routes/+layout.ts",
+      "sha256": "b5f24864fe6527996b701aa7f03d763a33c6a8ac4b8a861541064e800b8a1895"
+    },
+    {
+      "source": "reference/openPlan3D/src/routes/+page.svelte",
+      "target": "src/routes/+page.svelte",
+      "sha256": "935e408ecdc0a6fac5e9571df340bd2978d8c17db3a656aebcf0977c55bc3dfa"
+    },
+    {
+      "source": "reference/openPlan3D/src/routes/agent-bridge/events/+server.ts",
+      "target": "src/routes/agent-bridge/events/+server.ts",
+      "sha256": "98eb3471c63b406682dcc40b59e27d1ea3161899c99866120cecb7f77631d0d6"
+    },
+    {
+      "source": "reference/openPlan3D/src/routes/agent-bridge/mcp/+server.ts",
+      "target": "src/routes/agent-bridge/mcp/+server.ts",
+      "sha256": "9f9e76769d17c16d76f8e99c11887f3cb1d4f2c7683a1160de9dca96116b90d2"
+    },
+    {
+      "source": "reference/openPlan3D/src/routes/agent-bridge/reply/+server.ts",
+      "target": "src/routes/agent-bridge/reply/+server.ts",
+      "sha256": "6e431993a61b8f79bb224c62c7a4ddcb6c6a3c53dd76ba2a92cb65d4d0ae3f17"
+    },
+    {
+      "source": "reference/openPlan3D/src/routes/agent-bridge/saved/+server.ts",
+      "target": "src/routes/agent-bridge/saved/+server.ts",
+      "sha256": "77ac2e09ed5eeb8ce99687134cad6f8ff17a816c31ad177d0a47aaf038d1d964"
+    },
+    {
+      "source": "reference/openPlan3D/src/routes/agent-bridge/sync/+server.ts",
+      "target": "src/routes/agent-bridge/sync/+server.ts",
+      "sha256": "b0c618d485ade1ed4fc2480d02693a674452b456bcea4c57331c6aa252339137"
+    },
+    {
+      "source": "reference/openPlan3D/src/routes/api/assistant-shares/+server.ts",
+      "target": "src/routes/api/assistant-shares/+server.ts",
+      "sha256": "7739a32731bdbb357aea83fb727e3a6f21083fdda8efb8bc0b6521237a5c4ad4"
+    },
+    {
+      "source": "reference/openPlan3D/src/routes/api/assistant-shares/[code]/+server.ts",
+      "target": "src/routes/api/assistant-shares/[code]/+server.ts",
+      "sha256": "a16c063121f3d1672c4ff86dd152090be25da6668366efbdf8e83584a74c8dac"
+    },
+    {
+      "source": "reference/openPlan3D/src/routes/api/handoffs/+server.ts",
+      "target": "src/routes/api/handoffs/+server.ts",
+      "sha256": "b8f1bc4ddddd0fc77a4c2b7fa595f6804738410cd8a73d01e1cfcd949ec0a7a4"
+    },
+    {
+      "source": "reference/openPlan3D/src/routes/editor/+page.svelte",
+      "target": "src/routes/editor/+page.svelte",
+      "sha256": "fec90b722d270375e339e3983218e0c618df0ae4b84330032c6c2f3c6d1942fc"
+    },
+    {
+      "source": "reference/openPlan3D/src/routes/mcp/+server.ts",
+      "target": "src/routes/mcp/+server.ts",
+      "sha256": "cfe1f68d5295f8d6f6335137659adb2f8df0762a773c48a9d6dc7d716ea25964"
+    },
+    {
+      "source": "reference/openPlan3D/src/routes/render-lab/+page.svelte",
+      "target": "src/routes/render-lab/+page.svelte",
+      "sha256": "f1c30eccb98a1270d84ff980f42a5f9c72b65241794dfcace71e7f5db6592650"
+    },
+    {
+      "source": "reference/openPlan3D/src/svg-pathdata.d.ts",
+      "target": "src/svg-pathdata.d.ts",
+      "sha256": "94930f7aab34d82e3f19b45581551b5ade29d5812ee89d31f5520938b53d70d8"
+    },
+    {
+      "source": "reference/openPlan3D/static/favicon.svg",
+      "target": "static/favicon.svg",
+      "sha256": "128bb5294e56cd689a6ae9a5698efd0fd144ba986be7aaf3f08a4a35e2fdd82b"
+    },
+    {
+      "source": "reference/openPlan3D/static/robots.txt",
+      "target": "static/robots.txt",
+      "sha256": "b033243267bcbdab84cb01e940811d6d77a894d78f0470faaf0eb43f8e4efcc9"
+    },
+    {
+      "source": "reference/openPlan3D/svelte.config.js",
+      "target": "svelte.config.js",
+      "sha256": "6e67a199992887a75b09fa9b7e9315a7eedb50a7664e24a7c5290903c1df88f8"
+    },
+    {
+      "source": "reference/openPlan3D/tooling/catalog-assets.mjs",
+      "target": "tooling/catalog-assets.mjs",
+      "sha256": "f671c8fb991308fa79fdef42a5798f65c4b1bbf48a19e4e0e020e0f5666f54cf"
+    },
+    {
+      "source": "reference/openPlan3D/tooling/catalog-manifest.mjs",
+      "target": "tooling/catalog-manifest.mjs",
+      "sha256": "bd245aa5a3889f169e801a2b08bd1cb33eb3e3f4a3aa80e969d96fb7b93b2a79"
+    },
+    {
+      "source": "reference/openPlan3D/tooling/check-local-glb-images.mjs",
+      "target": "tooling/check-local-glb-images.mjs",
+      "sha256": "b805aa5cd9f3fb01af619dff7b06056ff6b5c040ba09cb63e1f046dd52a977f0"
+    },
+    {
+      "source": "reference/openPlan3D/tooling/check-local-glb-model.mjs",
+      "target": "tooling/check-local-glb-model.mjs",
+      "sha256": "0c92ef908fe6c3e01efd2da47c26502c31cf15f000075d32cea0f8937739442a"
+    },
+    {
+      "source": "reference/openPlan3D/tooling/local-model-fixture.mjs",
+      "target": "tooling/local-model-fixture.mjs",
+      "sha256": "1227793e12faee673cdaf87296416f1fe244e7aed852ca89c0445ccd6b18a0f6"
+    },
+    {
+      "source": "reference/openPlan3D/tooling/render-fixtures.mjs",
+      "target": "tooling/render-fixtures.mjs",
+      "sha256": "a9319cb443a8d150619ef58c33ee5fb7009c86347a27d6637a97292ea96df350"
+    },
+    {
+      "source": "reference/openPlan3D/tooling/render-lab-asset.ts",
+      "target": "tooling/render-lab-asset.ts",
+      "sha256": "6a8dd3b4e155e0a99ffd982bc793f33fe6e3c2636a8a499fc048d5c6efd05d44"
+    },
+    {
+      "source": "reference/openPlan3D/tooling/render-lab-site/environment.ts",
+      "target": "tooling/render-lab-site/environment.ts",
+      "sha256": "0b78298bbeb62acc3741b333ec4eb8320877cf518691a97a2361b0e8c4062201"
+    },
+    {
+      "source": "reference/openPlan3D/tooling/render-lab-site/index.html",
+      "target": "tooling/render-lab-site/index.html",
+      "sha256": "86a63d6b82dda5924b43cc7ec2f00b04f00181677d32dbf838b40c8ceecc25be"
+    },
+    {
+      "source": "reference/openPlan3D/tooling/render-lab-site/main.ts",
+      "target": "tooling/render-lab-site/main.ts",
+      "sha256": "8a37cac92fd0542e6825520e4763ec2f7d7a8d51b795a47533998690b0c642ae"
+    },
+    {
+      "source": "reference/openPlan3D/tooling/render-lab-site/vite.config.ts",
+      "target": "tooling/render-lab-site/vite.config.ts",
+      "sha256": "17f67984b8348fb76d73b58c0de0ebbc97e2bd75ba49ff37765a20985e0dc238"
+    },
+    {
+      "source": "reference/openPlan3D/tooling/safari-timeline.mjs",
+      "target": "tooling/safari-timeline.mjs",
+      "sha256": "dad8f3b355c9843929cf95bcf211f161b10602a0ec7e1d72dcff6268539d6274"
+    },
+    {
+      "source": "reference/openPlan3D/tooling/texture-inventory.mjs",
+      "target": "tooling/texture-inventory.mjs",
+      "sha256": "8fa20eaf05d3951314f422d89aea582968a642789a172df24b94b2d23233759b"
+    },
+    {
+      "source": "reference/openPlan3D/tsconfig.json",
+      "target": "tsconfig.json",
+      "sha256": "7a19bf2d57ef51ed3d7ddb0ed6ac3c4aa89025ab1cc2b0271132477905763134"
+    },
+    {
+      "source": "reference/openPlan3D/vite.config.ts",
+      "target": "vite.config.ts",
+      "sha256": "5bf3307219c839d2e95d9aad2803c49c6963c7da9b4cf901144fd5ca101a6682"
+    },
+    {
+      "source": "reference/openPlan3D/vitest.config.ts",
+      "target": "vitest.config.ts",
+      "sha256": "8a1453f7728ea985456a3a15ae75f69efe72ba1b1ea8dc82949c3d14568366d0"
+    }
+  ]
+}

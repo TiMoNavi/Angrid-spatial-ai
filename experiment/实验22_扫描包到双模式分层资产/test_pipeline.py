@@ -9,6 +9,7 @@ import run_pipeline as pipeline
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / 'pipeline'))
 from geometry_v1 import transform_hash
+from floor_plan import build_model_candidates, render_svg
 from package_layers import package, sha, verify_manifest
 
 
@@ -37,7 +38,8 @@ def scan_fixture(root):
     display.write_text('different cropped display geometry, no source ordinal promise')
     put(scan, pipeline.LEDGER_DIR + '/instance-ledger.json', {})
     put(scan, 'derived-v1/face-assignments.json', {})
-    put(scan, 'derived-v1/segment-report.json', {'sourceFaces': 100, 'objects': []})
+    put(scan, 'derived-v1/segment-report.json', {'scanId': scan.name,
+        'transformHash': transform_hash(MATRIX), 'sourceFaces': 100, 'objects': []})
     entries = []
     for identifier in ('clean-structure-grid', 'furniture-classified-grid',
                        'furniture-corrected-grid', 'conflict-grid', 'unknown-grid',
@@ -58,6 +60,7 @@ def scan_fixture(root):
     put(scan, 'import-manifest.json', {'scanId': scan.name, 'roomIndex': 0,
          'assetPaths': {'rawMeshPly': 'source/Room/mesh/room-0.ply', 'photoIndex': None,
                         'depthIndex': None}, 'sourceArchive': {'sha256': 'a' * 64},
+         'converted': {'sha256': sha(scan / 'converted.json')},
          'sourceMeshFrame': 'capture-session-world-m',
          'photoIndex': {'availableEntries': 0}, 'depthIndex': {'availableEntries': 0}})
     return scan, source
@@ -165,6 +168,12 @@ class PipelineTests(unittest.TestCase):
             self.assertEqual(layers['raw-lidar-ply']['sourcePlySha256'], before)
             self.assertFalse(layers['raw-lidar-ply']['displayFaceOrdinalsAreSourceFaceIds'])
             self.assertEqual(before, sha(source))
+            self.assertEqual(layers['floor-plan-data']['dataUri'], 'floor-plan.json')
+            self.assertEqual(layers['floor-plan-preview']['dataUri'], 'floor-plan.svg')
+            self.assertEqual(manifest['floorPlan']['dataSha256'], sha(scan / 'floor-plan.json'))
+            self.assertEqual(manifest['floorPlan']['previewSha256'], sha(scan / 'floor-plan.svg'))
+            self.assertEqual(json.loads((scan / 'floor-plan.json').read_text())['polygon'],
+                             json.loads((scan / 'converted.json').read_text())['polygon'])
 
     def test_model_mode_without_plan_advertises_no_fake_model(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -185,12 +194,31 @@ class PipelineTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'hash differs'):
                 verify_manifest(scan, path)
 
+    def test_layer_manifest_rejects_tampered_floor_plan_preview(self):
+        with tempfile.TemporaryDirectory() as directory:
+            scan, _ = scan_fixture(Path(directory))
+            path = package(scan, 'scan-evidence', pipeline.LEDGER_DIR, pipeline.MODEL_DIR, pipeline.EVIDENCE_DIR)
+            (scan / 'floor-plan.svg').write_text('<svg/>')
+            with self.assertRaisesRegex(ValueError, 'floor-plan geometry or preview'):
+                verify_manifest(scan, path)
+            with self.assertRaisesRegex(ValueError, 'floor-plan output changed'):
+                package(scan, 'scan-evidence', pipeline.LEDGER_DIR, pipeline.MODEL_DIR, pipeline.EVIDENCE_DIR)
+
     def test_collection_mesh_hashes_are_verified_individually(self):
         with tempfile.TemporaryDirectory() as directory:
             scan, _ = scan_fixture(Path(directory))
             fragment = scan / 'derived-v1/object-00-chair.ply'
             fragment.write_text('observed chair fragment')
-            put(scan, 'derived-v1/segment-report.json', {'sourceFaces': 100, 'objects': [{
+            converted = json.loads((scan / 'converted.json').read_text())
+            converted['objects'] = [{'category': 'chair', 'center': [1, .5, 1],
+                                     'size': [1, 1, 1], 'rotY': 0}]
+            put(scan, 'converted.json', converted)
+            imported = json.loads((scan / 'import-manifest.json').read_text())
+            imported['converted']['sha256'] = sha(scan / 'converted.json')
+            put(scan, 'import-manifest.json', imported)
+            put(scan, 'derived-v1/segment-report.json', {'scanId': scan.name,
+                'transformHash': transform_hash(MATRIX), 'sourceFaces': 100, 'objects': [{
+                'convertedIndex': 0, 'sourceIdentifier': 'chair-raw',
                 'objectId': 'test-scan:chair', 'category': 'chair', 'faceCount': 1,
                 'sourceFaceIds': [0], 'meshUri': fragment.name,
                 'aabb': {'min': [0, 0, 0], 'max': [1, 1, 1]}}]})
@@ -212,6 +240,54 @@ class PipelineTests(unittest.TestCase):
             display.symlink_to(external)
             with self.assertRaisesRegex(ValueError, 'escaped'):
                 verify_manifest(scan, path)
+
+    def test_floor_plan_keeps_roomplan_object_ids_without_reinterpreting_geometry(self):
+        with tempfile.TemporaryDirectory() as directory:
+            scan, _ = scan_fixture(Path(directory))
+            converted = json.loads((scan / 'converted.json').read_text())
+            converted['objects'] = [{'category': 'chair', 'center': [1, .5, 1],
+                                     'size': [.6, 1, .7], 'rotY': .25}]
+            put(scan, 'converted.json', converted)
+            imported = json.loads((scan / 'import-manifest.json').read_text())
+            imported['converted']['sha256'] = sha(scan / 'converted.json')
+            put(scan, 'import-manifest.json', imported)
+            report = json.loads((scan / 'derived-v1/segment-report.json').read_text())
+            report['objects'] = [{'convertedIndex': 0, 'objectId': 'test-scan:chair-uuid',
+                                  'sourceIdentifier': 'chair-uuid', 'category': 'chair',
+                                  'mappingState': 'verified'}]
+            put(scan, 'derived-v1/segment-report.json', report)
+            path = package(scan, 'scan-evidence', pipeline.LEDGER_DIR, pipeline.MODEL_DIR, pipeline.EVIDENCE_DIR)
+            verify_manifest(scan, path)
+            plan = json.loads((scan / 'floor-plan.json').read_text())
+            self.assertEqual(plan['objects'], converted['objects'])
+            self.assertEqual(plan['objectRefs'], [{'convertedIndex': 0,
+                'objectId': 'test-scan:chair-uuid', 'sourceIdentifier': 'chair-uuid',
+                'category': 'chair', 'mappingState': 'verified',
+                'provenance': 'roomplan-inferred', 'reviewState': 'unreviewed'}])
+            self.assertIn('data-object-id="test-scan:chair-uuid"', render_svg(plan))
+            self.assertEqual(plan['transformHash'], transform_hash(MATRIX))
+
+    def test_model_floor_plan_candidates_keep_exact_cells_and_inferred_state(self):
+        plan = {'scanId': 'scan-1', 'transformHash': transform_hash(MATRIX),
+                'sourcePlySha256': 'a' * 64}
+        occupancy = {'scanId': 'scan-1', 'transformHash': transform_hash(MATRIX),
+                     'sourcePlySha256': 'a' * 64, 'frame': 'room-local-m',
+                     'planSha256': 'b' * 64,
+                     'grid': {'stepM': .1, 'originM': [0, 0, 0], 'cellEncoding': 'index-xyz'},
+                     'instances': [{'instanceId': 'chair-1', 'categoryClaim': 'chair', 'label': 'chair'}],
+                     'cells': [{'indexXYZ': [2, 0, 3], 'candidateInstanceIds': ['chair-1']},
+                               {'indexXYZ': [2, 1, 3], 'candidateInstanceIds': ['chair-1']},
+                               {'indexXYZ': [4, 0, 3], 'candidateInstanceIds': ['chair-1']}]}
+        result = build_model_candidates(plan, occupancy, 'c' * 64)
+        candidate = result['candidates'][0]
+        self.assertEqual(candidate['occupiedXZ'], [[2, 3], [4, 3]])
+        self.assertEqual(candidate['footprintBoundsM'], {'min': [.2, .3], 'max': [.5, .4]})
+        self.assertEqual(candidate['heightRangeM'], [0, .2])
+        self.assertEqual(candidate['reviewState'], 'unreviewed')
+        self.assertTrue(candidate['ownerAcceptanceBlocked'])
+        occupancy['cells'][0]['candidateInstanceIds'] = ['unknown-instance']
+        with self.assertRaisesRegex(ValueError, 'unknown instance ID'):
+            build_model_candidates(plan, occupancy, 'c' * 64)
 
 
 if __name__ == '__main__':

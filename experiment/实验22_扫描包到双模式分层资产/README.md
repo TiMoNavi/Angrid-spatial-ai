@@ -2,6 +2,8 @@
 
 把实验 19 的离线导入、分类和候选发现，与实验 21 的 AI 原生体素建模工具收进一个独立目录。输入 iPhone 导出的 House Capture ZIP，输出统一房间坐标下的扫描、体素、实例候选和可选的命名 GLB。这里交付处理模块与资产约定，不另做一套网页编辑器。
 
+新增的房间平面数据、稳定家具索引及 SVG 预览接口见 [FLOOR_PLAN_FORMAT.md](FLOOR_PLAN_FORMAT.md)。
+
 两个模式的视觉、图层数量和叠加约定见 [MODES_AND_LAYERS.md](MODES_AND_LAYERS.md)，实测与限制见 [QA_REPORT.md](QA_REPORT.md)。
 
 ## 安装与输入
@@ -25,7 +27,7 @@ python3 experiment/实验22_扫描包到双模式分层资产/run_pipeline.py \
   --scan-id my-living-room --mode scan-evidence
 ```
 
-依次完成安全检查和解压、原包/源文件哈希记录、房间坐标转换、结构与家具分类体素、源面分配、局部 PLY 显示资产、未复核实例候选、分层 manifest。不调用 AI，不把未归属面直接判成杂物或扫描错误。沿用现有分类基线，尚未承诺解决所有家具边界。
+依次完成安全检查和解压、原包/源文件哈希记录、房间坐标转换、结构与家具分类体素、源面分配、局部 PLY 显示资产、未复核实例候选、房间局部平面图及分层 manifest。不调用 AI，不把未归属面直接判成杂物或扫描错误。沿用现有分类基线，尚未承诺解决所有家具边界。
 
 结果放在本实验文件夹**同级**的 `.private/SCAN_ID/`。在当前仓库即 `experiment/.private/SCAN_ID/`，已被 Git 忽略。原输入 ZIP 只读；输出保留一份 `source-archive.zip` 和原样解压的 `source/`。
 
@@ -60,6 +62,9 @@ python3 experiment/实验22_扫描包到双模式分层资产/run_pipeline.py \
 ├── source/                           原样解压文件
 ├── import-manifest.json               原始资产、房间索引、能力、哈希
 ├── converted.json                     米制房间坐标、墙、家具、照片机位
+├── floor-plan.json                    原版 RoomLayout 兼容几何、扫描身份、稳定家具 ID
+├── floor-plan.svg                     同一 JSON 派生的房间局部平面预览
+├── floor-plan.model-candidates.json   模型成功后才有；AI 占据格的候选足迹
 ├── derived-v1/                        结构/家具/冲突/未归属格、切片、源面分配
 ├── mesh-voxels/raw-room.ply            房间局部显示网格
 ├── mesh-surface-grids.json             原 PLY 表面格，多档粒度

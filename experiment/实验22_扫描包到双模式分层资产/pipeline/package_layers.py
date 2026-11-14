@@ -11,6 +11,8 @@ import os
 from pathlib import Path
 import tempfile
 
+from floor_plan import build_model_candidates, build_plan, render_svg
+
 
 def sha(path: Path) -> str:
     digest = hashlib.sha256()
@@ -27,15 +29,31 @@ def read(path: Path) -> dict:
     return value
 
 
-def write(path: Path, value: dict) -> None:
+def write(path: Path, value: dict, *, immutable: bool = False) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     payload = (json.dumps(value, ensure_ascii=False, sort_keys=True,
                           separators=(',', ':'), allow_nan=False) + '\n').encode()
     if path.is_file() and not path.is_symlink() and path.read_bytes() == payload:
         return
+    if immutable and path.exists():
+        raise ValueError(f'floor-plan output changed: {path.name}; use a new scan ID')
     if path.is_symlink():
         raise ValueError('refusing to publish through a symlink')
     with tempfile.NamedTemporaryFile(dir=path.parent, prefix='.layers-', delete=False) as stream:
+        stream.write(payload)
+        temporary = Path(stream.name)
+    os.replace(temporary, path)
+
+
+def write_text(path: Path, value: str, *, immutable: bool = False) -> None:
+    payload = value.encode('utf-8')
+    if path.is_file() and not path.is_symlink() and path.read_bytes() == payload:
+        return
+    if immutable and path.exists():
+        raise ValueError(f'floor-plan output changed: {path.name}; use a new scan ID')
+    if path.is_symlink():
+        raise ValueError('refusing to publish through a symlink')
+    with tempfile.NamedTemporaryFile(dir=path.parent, prefix='.floor-plan-', delete=False) as stream:
         stream.write(payload)
         temporary = Path(stream.name)
     os.replace(temporary, path)
@@ -61,6 +79,9 @@ def package(scan: Path, mode: str, ledger_dir: str, model_dir: str, evidence_dir
     transform = classified['transformHash']
     source_uri = imported['assetPaths']['rawMeshPly']
     source_hash = sha(local_file(scan, source_uri))
+    floor_plan = build_plan(scan, imported, room, classified, report, source_hash)
+    write(scan / 'floor-plan.json', floor_plan, immutable=True)
+    write_text(scan / 'floor-plan.svg', render_svg(floor_plan), immutable=True)
     common = {'schemaVersion': 1, 'scanId': scan.name, 'units': 'm',
               'frame': 'room-local-m', 'transformHash': transform}
     shared = {**common, 'sourcePlySha256': source_hash}
@@ -88,6 +109,13 @@ def package(scan: Path, mode: str, ledger_dir: str, model_dir: str, evidence_dir
                           'transparent': opacity < 1, 'polygonOffset': True}, **extra}
         layers.append(row)
         return row
+
+    add('floor-plan-data', '房间平面图数据', 'room-layout-plan', 'roomplan-inferred',
+        'floor-plan.json', group='plan', renderable=False, opacity=1,
+        objectCount=len(floor_plan['objects']))
+    add('floor-plan-preview', '房间平面图 SVG 预览', 'floor-plan-svg', 'derived-preview',
+        'floor-plan.svg', group='plan', renderable=False, opacity=1,
+        sourceDataUri='floor-plan.json')
 
     write(scan / 'layers/roomplan-structure.json', {**shared, 'kind': 'roomplan-structure',
           'polygon': room['polygon'], 'walls': room['walls'],
@@ -181,6 +209,14 @@ def package(scan: Path, mode: str, ledger_dir: str, model_dir: str, evidence_dir
                       'reviewState': 'unreviewed', 'ownerAcceptanceBlocked': True,
                       'legacyOwnership': 'unchanged', 'sourcePlySha256': source_hash,
                       'identityValidation': evidence['identityValidation']}
+        occupancy_path = scan / model_dir / 'voxel-occupancy.json'
+        candidates = build_model_candidates(floor_plan, read(occupancy_path), sha(occupancy_path))
+        write(scan / 'floor-plan.model-candidates.json', candidates, immutable=True)
+        add('floor-plan-model-candidates', 'AI 模型候选平面足迹',
+            'model-floor-plan-candidates', 'model-inferred',
+            'floor-plan.model-candidates.json', group='model', renderable=False,
+            reviewState='unreviewed', ownerAcceptanceBlocked=True,
+            candidateCount=len(candidates['candidates']))
         add('reconstructed-model', 'AI 重建命名实体 GLB', 'named-glb', 'model-inferred',
             model_dir + '/reconstructed.glb', group='model', opacity=.55, color='#96d9ce',
             order=35, nodeNaming='instanceId::partId', **model_meta)
@@ -199,6 +235,11 @@ def package(scan: Path, mode: str, ledger_dir: str, model_dir: str, evidence_dir
             add(identifier, label, kind, 'model-inferred', group='model', available=False,
                 reason='Awaiting a scan-bound AI/person-authored voxel-plan; no modeled asset has been generated.',
                 reviewState='unreviewed', ownerAcceptanceBlocked=True)
+        add('floor-plan-model-candidates', 'AI 模型候选平面足迹',
+            'model-floor-plan-candidates', 'model-inferred', group='model',
+            renderable=False, available=False,
+            reason='Awaiting a scan-bound AI/person-authored voxel-plan.',
+            reviewState='unreviewed', ownerAcceptanceBlocked=True)
     manifest = {**shared, 'kind': 'dual-mode-scan-assets', 'workflowVersion': 'e22-layers-v1',
                 'mode': mode, 'status': 'awaiting-ai-plan' if mode == 'model-voxel' and not model_available else 'completed',
                 'roomIndex': imported['roomIndex'],
@@ -210,6 +251,10 @@ def package(scan: Path, mode: str, ledger_dir: str, model_dir: str, evidence_dir
                          'axisConvention': '+Y up', 'modelCellEncoding': 'index-xyz'},
                 'coordinatePolicy': 'Apply worldToRoom exactly once to capture-session assets. Room-local assets are ready to render.',
                 'defaultFallback': 'raw-lidar-ply', 'layers': layers,
+                'floorPlan': {'dataUri': 'floor-plan.json',
+                              'dataSha256': sha(scan / 'floor-plan.json'),
+                              'previewUri': 'floor-plan.svg',
+                              'previewSha256': sha(scan / 'floor-plan.svg')},
                 'viewPresets': {
                     'scan-evidence': {'label': '扫描证据模式', 'coreLayerIds': [
                         'raw-lidar-ply', 'roomplan-structure', 'furniture-obb', 'scan-surface-grid',
@@ -245,6 +290,27 @@ def verify_manifest(scan: Path, path: Path) -> dict:
             manifest.get('sourcePlySha256') != sha(local_file(scan, imported['assetPaths']['rawMeshPly'])) or
             manifest.get('convertedHash') != sha(scan / 'converted.json')):
         raise ValueError('layer manifest source identity mismatch')
+    plan_path = local_file(scan, 'floor-plan.json')
+    preview_path = local_file(scan, 'floor-plan.svg')
+    plan = read(plan_path)
+    converted = read(scan / 'converted.json')
+    floor = manifest.get('floorPlan', {})
+    expected_plan = build_plan(scan, imported, converted,
+                               read(scan / 'derived-v1/layer-manifest.json'),
+                               read(scan / 'derived-v1/segment-report.json'),
+                               manifest['sourcePlySha256'])
+    if (plan != expected_plan or
+            plan.get('kind') != 'room-layout-plan' or plan.get('scanId') != scan.name or
+            plan.get('frame') != 'room-local-m' or
+            plan.get('transformHash') != manifest['transformHash'] or
+            plan.get('convertedHash') != manifest['convertedHash'] or
+            any(plan.get(key) != converted.get(key) for key in ('polygon', 'walls', 'objects')) or
+            floor.get('dataUri') != 'floor-plan.json' or
+            floor.get('dataSha256') != sha(plan_path) or
+            floor.get('previewUri') != 'floor-plan.svg' or
+            floor.get('previewSha256') != sha(preview_path) or
+            preview_path.read_text(encoding='utf-8') != render_svg(plan)):
+        raise ValueError('floor-plan geometry or preview differs from converted scan')
     seen = set()
     for layer in manifest['layers']:
         if layer['id'] in seen or layer['transformHash'] != manifest['transformHash']:

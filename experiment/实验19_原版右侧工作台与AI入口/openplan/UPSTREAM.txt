@@ -1,0 +1,2 @@
+Upstream: https://github.com/laanlabs/openPlan3D.git
+Revision: b0727b54da5f0f642722dcc88cc52d7236fadc9e

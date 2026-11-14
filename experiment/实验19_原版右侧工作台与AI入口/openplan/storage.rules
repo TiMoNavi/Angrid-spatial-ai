@@ -1,0 +1,22 @@
+rules_version = '2';
+
+// Firebase Storage rules for capture handoffs (inbox/{CODE}.json, CODE = [A-Z2-9]{8},
+// an alphabet without I, O, 0 or 1). Captures are written only by the web backend's
+// service identity through IAM, after POST /api/handoffs has reserved quota (see
+// docs/handoff-quotas.md); these rules do not apply to it. Public clients can read a
+// capture by its code, which is how /editor?import=CODE fetches it, and can write
+// nothing: no direct uploads that bypass admission, and no access to its ledger.
+// A bucket lifecycle rule deletes inbox/ objects after one day.
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /inbox/{file} {
+      allow read: if file.matches('[A-Z2-9]{8}\\.json');
+      allow write: if false;
+    }
+
+    // Everything else, including the quota ledger and assistant shares: denied.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

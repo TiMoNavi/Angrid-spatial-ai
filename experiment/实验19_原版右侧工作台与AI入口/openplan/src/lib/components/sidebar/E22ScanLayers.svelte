@@ -1,6 +1,7 @@
 <script lang="ts">
-  import { activeE22Scan, e22GridStep, e22LayerErrors, e22LayerSettings, e22LoadState,
-    e22Manifest, e22ShowEditorWalls, e22ViewMode, setE22LayerOpacity, setE22LayerVisible, setE22ViewMode } from '$lib/stores/e22Scan';
+  import { activeE22Scan, e22ClipEnabled, e22ClipHeightM, e22GridStep, e22LayerErrors, e22LayerSettings, e22LoadState,
+    e22Manifest, e22ShowEditorWalls, e22ViewMode, setE22ClipHeightM, setE22LayerClipped,
+    setE22LayerOpacity, setE22LayerVisible, setE22ViewMode } from '$lib/stores/e22Scan';
   import { E22_RENDERABLE_KINDS } from '$lib/services/e22LayerLoader';
   import { groupE22RenderableLayers } from '$lib/utils/e22LayerGroups';
 
@@ -27,6 +28,16 @@
         {#each steps as step}<option value={step}>{Math.round(step * 100)} cm</option>{/each}
       </select>
     </label>
+    <div class="scan-cut">
+      <label><input type="checkbox" checked={$e22ClipEnabled}
+        onchange={(event) => e22ClipEnabled.set(event.currentTarget.checked)} />水平剖切</label>
+      <label class="scan-cut-height">高度
+        <input aria-label="扫描水平剖切高度" type="range" min="0.2" max="5" step="0.1"
+          value={$e22ClipHeightM} disabled={!$e22ClipEnabled}
+          oninput={(event) => setE22ClipHeightM(Number(event.currentTarget.value))} />
+        <span>{$e22ClipHeightM.toFixed(1)} m</span>
+      </label>
+    </div>
     <p class="scan-hint">一次优先查看一个高密度表面层；可手动叠加对照。扫描格宽只影响显示，不提高扫描精度。模型体素格宽由生成资产固定。方块面按下方不透明度显示，线框会增强以便看清格子。</p>
     {#if $e22LoadState.loading}<p class="scan-status" role="status">正在读取图层目录…</p>{/if}
     {#if $e22LoadState.error}<p class="scan-error" role="alert">{$e22LoadState.error}</p>{/if}
@@ -46,14 +57,20 @@
           </label>
           <div class="scan-layer-meta">
             <small>{layer.provenance}</small>
-            {#if enabled}
+            {#if !enabled}<small class="scan-unavailable">{layer.available ? '暂不支持显示' : layer.reason || '本次未生成'}</small>{/if}
+          </div>
+          {#if enabled}
+            <div class="scan-layer-controls">
               <label title="图层不透明度">{Math.round((setting?.opacity ?? layer.visual.opacity) * 100)}%
                 <input aria-label={layer.label + ' 不透明度'} type="range" min="0" max="1" step="0.05"
                   value={setting?.opacity ?? layer.visual.opacity}
                   oninput={(event) => setE22LayerOpacity(layer.id, Number(event.currentTarget.value))} />
               </label>
-            {:else}<small class="scan-unavailable">{layer.available ? '暂不支持显示' : layer.reason || '本次未生成'}</small>{/if}
-          </div>
+              <label title="只控制本扫描图层是否参与水平剖切"><input aria-label={layer.label + ' 参与剖切'}
+                type="checkbox" checked={Boolean(setting?.clipped)}
+                onchange={(event) => setE22LayerClipped(layer.id, event.currentTarget.checked)} />剖切</label>
+            </div>
+          {/if}
           {#if $e22LayerErrors[layer.id]}<p class="scan-error" role="alert">{$e22LayerErrors[layer.id]}</p>{/if}
         </div>
         {/each}
@@ -73,6 +90,11 @@
       {/if}
     {/if}
   </section>
+{:else}
+  <section class="scan-empty" aria-label="扫描图层未绑定">
+    <strong>扫描图层尚未绑定</strong>
+    <p>使用现有的 Import Scan / RoomPlan 导入扫描，或重新打开已处理的扫描平面，此处将显示对应图层。</p>
+  </section>
 {/if}
 
 <style>
@@ -87,6 +109,11 @@
   .scan-editor-walls{display:flex;align-items:center;gap:7px;padding:5px 12px;color:#c8d4cb;cursor:pointer}
   .scan-editor-walls input{accent-color:#d4bd81}
   .scan-grain select{background:#171e1f;color:#e9eee6;border:1px solid #ffffff35;border-radius:4px;padding:3px 5px}
+  .scan-cut{display:flex;flex-direction:column;gap:7px;padding:8px 12px;border-top:1px solid #ffffff16;color:#c8d4cb}
+  .scan-cut label,.scan-layer-controls label{display:flex;align-items:center;gap:5px;white-space:nowrap}
+  .scan-cut input[type="checkbox"],.scan-layer-controls input[type="checkbox"]{accent-color:#d4bd81}
+  .scan-cut-height input{min-width:0;flex:1;accent-color:#d4bd81}
+  .scan-cut-height span{min-width:34px;text-align:right;font-variant-numeric:tabular-nums}
   .scan-hint{margin:5px 12px 11px;line-height:1.4;font-size:10px}
   .scan-group{border-top:1px solid #ffffff1b}
   .scan-group > summary{display:flex;align-items:center;justify-content:space-between;gap:5px;padding:9px 11px;cursor:pointer;color:#e9d5a7;font-size:11px;font-weight:600;list-style:none}
@@ -106,10 +133,12 @@
   .scan-swatch{width:7px;height:7px;border-radius:2px;flex:none;box-shadow:0 0 0 1px #ffffff55}
   .scan-layer-meta{display:flex;justify-content:space-between;gap:6px;margin:5px 0 0 22px;font-size:10px}
   .scan-layer-meta small{font-size:10px;overflow-wrap:anywhere}
-  .scan-layer-meta:has(.scan-unavailable){flex-wrap:wrap}
-  .scan-layer-meta .scan-unavailable{flex-basis:100%;line-height:1.4;color:#d8bba5}
-  .scan-layer-meta label{display:flex;align-items:center;gap:5px;white-space:nowrap}
-  .scan-layer-meta input{width:56px;accent-color:#d4bd81}
+  .scan-layer-meta .scan-unavailable{line-height:1.4;color:#d8bba5;text-align:right}
+  .scan-layer-controls{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:7px 0 0 22px;color:#b6c7ba;font-size:10px}
+  .scan-layer-controls input[type="range"]{width:64px;accent-color:#d4bd81}
+  .scan-empty{margin:11px 10px 13px;padding:12px;border:1px solid #d3bc8055;border-radius:8px;background:linear-gradient(155deg,#283331,#1d2828);color:#e9ede3;font-size:11px}
+  .scan-empty strong{color:#e9d5a7;font-size:12px}
+  .scan-empty p{margin:6px 0 0;color:#aab9b0;line-height:1.5}
   .scan-data-toggle{width:100%;text-align:left;padding:10px 11px;color:#bfcbbf;border-top:1px solid #ffffff18;cursor:pointer}
   .scan-data-list{padding:0 11px 10px 24px;color:#aebdb2;line-height:1.7}
   .scan-data-list li{display:flex;justify-content:space-between;gap:7px}

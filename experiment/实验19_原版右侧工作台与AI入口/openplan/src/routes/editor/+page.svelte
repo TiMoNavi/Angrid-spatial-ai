@@ -16,7 +16,7 @@
   import { autoSave, markClean, saveState } from '$lib/stores/saveStatus';
   import { startAgentBridge } from '$lib/services/agentBridge';
   import { createProjectFromRoomPlan, isRoomPlanJson } from '$lib/utils/roomplanImport';
-  import { restoreE22Scan } from '$lib/stores/e22Scan';
+  import { activeE22Scan, restoreE22Scan } from '$lib/stores/e22Scan';
   import TopBar from '$lib/components/toolbar/TopBar.svelte';
   import BuildPanel from '$lib/components/sidebar/BuildPanel.svelte';
   import RightWorkbench from '$lib/components/sidebar/RightWorkbench.svelte';
@@ -25,6 +25,7 @@
   let rightTab = $state<PanelTab>('inspector');
   let rightCollapsed = $state(false);
   let lastSelection = $state<string | null>(null);
+  let lastScanProjectId: string | null = null;
   function toggleLayers() {
     if (rightTab === 'layers' && !rightCollapsed) rightCollapsed = true;
     else { rightTab = 'layers'; rightCollapsed = false; }
@@ -33,6 +34,14 @@
     const selection = $selectedElementId || $selectedRoomId;
     if (selection && selection !== lastSelection) { rightTab = 'inspector'; rightCollapsed = false; }
     lastSelection = selection;
+  });
+  $effect(() => {
+    const scanProjectId = $activeE22Scan?.projectId ?? null;
+    if (scanProjectId && scanProjectId !== lastScanProjectId) {
+      rightTab = 'layers';
+      rightCollapsed = false;
+    }
+    lastScanProjectId = scanProjectId;
   });
   import FloorPlanCanvas from '$lib/components/editor/FloorPlanCanvas.svelte';
   import AlignmentToolbar from '$lib/components/editor/AlignmentToolbar.svelte';

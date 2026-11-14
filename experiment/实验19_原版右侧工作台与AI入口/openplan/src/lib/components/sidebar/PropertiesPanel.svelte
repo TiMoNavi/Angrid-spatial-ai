@@ -12,7 +12,7 @@
   import type { DetailTarget } from '$lib/models/types';
   import { catalogAssetUrl } from '$lib/utils/catalogAssetUrl';
 
-  import { currentProject, activeFloor, selectedElementId, selectedRoomId, updateWall, resizeWallLength, reverseWall, updateDoor, updateWindow, updateRoom, updateFurniture, detectedRoomsStore, updateStair, updateColumn, updateBackgroundImage, setBackgroundImage, calibrationMode, calibrationPoints, doorJoinMode, updateTextAnnotation, toggleFurnitureLock, updateEntourageItem, removeElement, elevationWallId } from '$lib/stores/project';
+  import { currentProject, activeFloor, selectedElementId, selectedElementIds, selectedRoomId, updateWall, resizeWallLength, reverseWall, updateDoor, updateWindow, updateRoom, updateFurniture, detectedRoomsStore, updateStair, updateColumn, updateBackgroundImage, setBackgroundImage, calibrationMode, calibrationPoints, doorJoinMode, updateTextAnnotation, toggleFurnitureLock, updateEntourageItem, removeElement, elevationWallId } from '$lib/stores/project';
   import { wallLength as calcWallLength, MIN_WALL_LENGTH, type WallEndpoint } from '$lib/utils/wallEditing';
   import { openingOnWall } from '$lib/utils/wallProfiles';
   import { getEntourageDef } from '$lib/utils/entourageCatalog';
@@ -57,6 +57,13 @@
   let selectedColumn = $derived(floor?.columns?.find(c => c.id === selId) ?? null);
   let selectedTextAnnotation = $derived(floor?.textAnnotations?.find(t => t.id === selId) ?? null);
   let selectedEntourage = $derived(floor?.entourage?.find(en => en.id === selId) ?? null);
+  function deleteSelectedObject() {
+    const id = selectedFurniture?.id ?? selectedStair?.id ?? selectedColumn?.id ?? selectedEntourage?.id;
+    if (!id) return;
+    removeElement(id);
+    selectedElementId.set(null);
+    selectedElementIds.set(new Set());
+  }
   let hasBgImage = $derived(!!floor?.backgroundImage);
   let selectedRoom = $derived(floor && selRoomId
     ? resolveRooms(floor, detectedRooms).find(r => r.id === selRoomId) ?? null
@@ -713,6 +720,10 @@
         title={selectedFurniture.locked ? $t('furnitureProperties.unlock') : $t('furnitureProperties.lock')}
       >{selectedFurniture.locked ? `🔒 ${$t('furnitureProperties.locked')}` : '🔓'}</button>
     </h3>
+    <button type="button" class="object-delete-button mb-3 flex w-full items-center justify-center gap-2 rounded border border-red-300 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50" onclick={deleteSelectedObject}>
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14" /></svg>
+      {$t('furnitureProperties.delete')}
+    </button>
     {#if selectedFurniture.catalogId === 'imported_object'}
       <p class="mb-3 text-xs text-gray-500 break-words">{$t('furnitureProperties.originalCategory', { category: selectedFurniture.sourceCategory || $t('furnitureProperties.unknown') })}</p>
     {:else if selectedFurniture.catalogId === 'stairs'}
@@ -951,6 +962,7 @@
       <span class="w-6 h-6 bg-green-100 rounded flex items-center justify-center text-xs">🌳</span>
       {$t('entourageLabels.title')}
     </h3>
+    <button type="button" class="object-delete-button mb-3 flex w-full items-center justify-center gap-2 rounded border border-red-300 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50" onclick={deleteSelectedObject}>{$t('furnitureProperties.delete')}</button>
     <div class="space-y-3">
       <div>
         <span class="text-xs text-gray-500">{$t('symbolProperties.symbol')}</span>
@@ -970,7 +982,6 @@
       </label>
       <div class="flex gap-2">
         <button onclick={() => { if (selectedEntourage) updateEntourageItem(selectedEntourage.id, { locked: !selectedEntourage.locked }); }} class="flex-1 px-2 py-1.5 border rounded text-sm transition-colors {selectedEntourage.locked ? 'bg-amber-50 border-amber-300 text-amber-700' : 'border-gray-200 hover:bg-gray-50'}">{selectedEntourage.locked ? $t('symbolProperties.locked') : $t('symbolProperties.unlocked')}</button>
-        <button onclick={() => { if (selectedEntourage) { removeElement(selectedEntourage.id); selectedElementId.set(null); } }} class="flex-1 px-2 py-1.5 border border-red-200 text-red-600 rounded text-sm hover:bg-red-50 transition-colors">{$t('symbolProperties.delete')}</button>
       </div>
     </div>
 
@@ -979,6 +990,7 @@
       <span class="w-6 h-6 bg-gray-200 rounded flex items-center justify-center text-xs">🪜</span>
       {$t('stairProperties.heading')}
     </h3>
+    <button type="button" class="object-delete-button mb-3 flex w-full items-center justify-center gap-2 rounded border border-red-300 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50" onclick={deleteSelectedObject}>{$t('furnitureProperties.delete')}</button>
     <div class="space-y-3">
       <label class="block">
         <span class="text-xs text-gray-500">{$t('openingProperties.type')}</span>
@@ -1018,6 +1030,7 @@
       <span class="w-6 h-6 bg-gray-200 rounded flex items-center justify-center text-xs">🏛️</span>
       {$t('columnProperties.heading')}
     </h3>
+    <button type="button" class="object-delete-button mb-3 flex w-full items-center justify-center gap-2 rounded border border-red-300 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50" onclick={deleteSelectedObject}>{$t('furnitureProperties.delete')}</button>
     <div class="space-y-3">
       <div role="group" aria-label={$t('columnProperties.shape')}>
         <span class="text-xs text-gray-500">{$t('columnProperties.shape')}</span>
@@ -1157,6 +1170,8 @@
   .studio-properties button[class*="hover:bg-gray-50"]:hover { background: #ffffff11 !important; }
   .studio-properties button[aria-pressed="true"] { background: #bfa46e30 !important; border-color: #cbb07888 !important; color: #f0d9ad !important; }
   .studio-properties button:not([style]):not(.text-red-600) { color: #d9e1d5; }
+  .studio-properties .object-delete-button { color: #f4a6a6 !important; border-color: #de77777a !important; background: #832d2d20; }
+  .studio-properties .object-delete-button:hover { background: #963b3b36 !important; }
   .studio-properties :is(.border-gray-200,.border-gray-300) { border-color: #ffffff32; }
   .studio-properties :is(.border-t,.border-b) { border-color: #ffffff20 !important; }
   .studio-properties :is(button, input, select, textarea):focus-visible {

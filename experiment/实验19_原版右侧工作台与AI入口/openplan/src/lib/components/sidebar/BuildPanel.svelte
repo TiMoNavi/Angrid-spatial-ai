@@ -26,6 +26,7 @@
   import { selectableContentIds, type AddedContent } from '$lib/utils/roomplanMerge';
   import { interchangeProjectName } from '$lib/utils/interchange';
   import { createProjectFromE22FloorPlan, validateE22FloorPlan } from '$lib/utils/e22FloorPlanImport';
+  import { classifyScanZipEntries } from '$lib/utils/scanZipKind';
   import { attachE22Scan } from '$lib/stores/e22Scan';
 
   let { mode = '2d' }: { mode?: '2d' | '3d' } = $props();
@@ -123,6 +124,23 @@
     e22Busy = true;
     e22Error = null;
     try {
+      if (roomIndex === undefined) {
+        if (/\.json$/i.test(e22File.name)) {
+          await prepareRoomPlanImport(e22File);
+          e22File = null;
+          return;
+        }
+        if (!/\.zip$/i.test(e22File.name)) throw new Error('请选择 House Capture ZIP 或 RoomPlan JSON。');
+        const JSZip = (await import('jszip')).default;
+        const zip = await JSZip.loadAsync(e22File);
+        const kind = classifyScanZipEntries(Object.keys(zip.files));
+        if (kind === 'roomplan') {
+          await prepareRoomPlanImport(e22File);
+          e22File = null;
+          return;
+        }
+        if (kind !== 'house-capture') throw new Error('ZIP 中没有可识别的 House Capture 房间清单或 RoomPlan room.json。');
+      }
       const query = roomIndex === undefined ? '' : '?roomIndex=' + roomIndex;
       const response = await fetch(base + '/api/e22-scans' + query, {
         method: 'POST', headers: { 'Content-Type': 'application/zip' }, body: e22File,
@@ -361,35 +379,19 @@
     input.click();
   }
 
-  async function onImportRoomPlan() {
-    importError = null;
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.json,.zip';
-    input.onchange = async () => {
-      const file = input.files?.[0];
-      if (!file) return;
-      try {
-        let jsonData: any;
-        if (/\.zip$/i.test(file.name)) {
-          jsonData = await extractRoomJsonFromZip(file);
-        } else {
-          const text = await file.text();
-          jsonData = JSON.parse(text);
-        }
-        validateRoomPlan(jsonData);
-        const options = roomPlanImportOptions(jsonData);
-        optStraighten = options.straighten ?? true;
-        optOrthogonal = options.orthogonal ?? true;
-        optMergeDistance = options.mergeDistance ?? 15;
-        importJsonData = jsonData;
-        importFileName = file.name.replace(/\.(json|zip)$/, '');
-        showImportDialog = true;
-      } catch (e: any) {
-        importError = e.message;
-      }
-    };
-    input.click();
+  async function prepareRoomPlanImport(file: File) {
+    const jsonData: any = /\.zip$/i.test(file.name)
+      ? await extractRoomJsonFromZip(file)
+      : JSON.parse(await file.text());
+    validateRoomPlan(jsonData);
+    const options = roomPlanImportOptions(jsonData);
+    optStraighten = options.straighten ?? true;
+    optOrthogonal = options.orthogonal ?? true;
+    optMergeDistance = options.mergeDistance ?? 15;
+    importJsonData = jsonData;
+    importFileName = file.name.replace(/\.(json|zip)$/i, '');
+    showE22Dialog = false;
+    showImportDialog = true;
   }
 
   async function confirmImport() {
@@ -515,10 +517,6 @@
   </div>
 
   <div class="build-body flex-1 overflow-y-auto p-3">
-    <button type="button" class="studio-scan-import mb-3 w-full rounded-lg px-3 py-2.5 text-left text-sm" onclick={openE22Dialog}>
-      <span class="block font-semibold">导入 iPhone 扫描包</span>
-      <span class="block text-xs text-slate-500">实验 22 · 平面图与扫描图层</span>
-    </button>
     {#if mode === '2d' && activeTab === 'draw'}
       <div class="space-y-1">
         <h3 class="text-xs font-semibold text-gray-400 uppercase mb-2">{$t('buildTools.tools')}</h3>
@@ -655,7 +653,7 @@
         {/if}
         <button
           class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors hover:bg-gray-50 text-gray-700"
-          onclick={onImportRoomPlan}
+          onclick={openE22Dialog}
         >
           <div class="w-9 h-9 rounded-lg bg-gray-100 flex items-center justify-center">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
@@ -963,15 +961,15 @@
 {/if}
 
 {#if showE22Dialog}
-  <dialog use:modalDialog class="modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/60" aria-label="导入 iPhone 扫描包" onclick={(event) => { if (!e22Busy && event.target === event.currentTarget) showE22Dialog = false; }} oncancel={(event) => { event.preventDefault(); if (!e22Busy) showE22Dialog = false; }}>
+  <dialog use:modalDialog class="modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/60" aria-label="导入扫描或 RoomPlan" onclick={(event) => { if (!e22Busy && event.target === event.currentTarget) showE22Dialog = false; }} oncancel={(event) => { event.preventDefault(); if (!e22Busy) showE22Dialog = false; }}>
     <div class="max-h-[85vh] w-[440px] max-w-[calc(100vw-2rem)] overflow-auto rounded-xl bg-white p-5 shadow-2xl">
       <div class="mb-4 flex items-start justify-between gap-3">
-        <div><h3 class="text-base font-semibold text-slate-900">iPhone 扫描 · 实验 22</h3><p class="mt-1 text-xs leading-5 text-slate-500">从 House Capture ZIP 生成可编辑平面图，并在 3D 查看扫描和体素层。</p></div>
+        <div><h3 class="text-base font-semibold text-slate-900">导入扫描或 RoomPlan</h3><p class="mt-1 text-xs leading-5 text-slate-500">House Capture ZIP 会生成可编辑平面与 3D 扫描图层；普通 RoomPlan JSON／ZIP 保留原有导入选项。</p></div>
         <button type="button" class="rounded p-1 text-slate-500 hover:bg-slate-100" aria-label="关闭扫描导入" disabled={e22Busy} onclick={() => showE22Dialog = false}>✕</button>
       </div>
-      <label for="e22-zip-file" class="block text-xs font-semibold text-slate-700">选择原始扫描 ZIP</label>
-      <input id="e22-zip-file" type="file" accept=".zip,application/zip" class="mt-2 block w-full text-xs text-slate-600 file:mr-3 file:rounded-md file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:text-slate-700" disabled={e22Busy} onchange={pickE22File} />
-      <button type="button" class="mt-3 w-full rounded-lg bg-slate-800 px-3 py-2 text-sm font-medium text-white disabled:opacity-50" disabled={!e22File || e22Busy} onclick={() => processE22File()}>{e22Busy ? '处理中，请稍候…' : '处理并打开扫描'}</button>
+      <label for="scan-import-file" class="block text-xs font-semibold text-slate-700">选择 House Capture ZIP 或 RoomPlan JSON／ZIP</label>
+      <input id="scan-import-file" type="file" accept=".json,.zip,application/json,application/zip" class="mt-2 block w-full text-xs text-slate-600 file:mr-3 file:rounded-md file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:text-slate-700" disabled={e22Busy} onchange={pickE22File} />
+      <button type="button" class="mt-3 w-full rounded-lg bg-slate-800 px-3 py-2 text-sm font-medium text-white disabled:opacity-50" disabled={!e22File || e22Busy} onclick={() => processE22File()}>{e22Busy ? '处理中，请稍候…' : '导入所选文件'}</button>
       {#if e22Rooms.length}
         <p class="mt-3 text-xs text-amber-800">扫描包含多个房间，请选择要处理的房间索引：</p>
         <div class="mt-2 flex flex-wrap gap-2">{#each e22Rooms as roomIndex}<button type="button" class="rounded border border-amber-300 px-3 py-1.5 text-xs text-amber-900 hover:bg-amber-50" disabled={e22Busy} onclick={() => processE22File(roomIndex)}>房间 {roomIndex}</button>{/each}</div>
@@ -983,7 +981,7 @@
         {:else if !e22Scans.length}<p class="mt-2 text-xs text-slate-500">暂无可打开的实验 22 平面资产。</p>
         {:else}<div class="mt-2 max-h-40 space-y-1 overflow-auto">{#each e22Scans as scan}<button type="button" class="flex w-full justify-between rounded-md border border-slate-200 px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50 disabled:opacity-50" disabled={e22Busy} onclick={() => openE22Scan(scan)}><span class="truncate">{scan.scanId}</span><span class="ml-2 shrink-0">房间 {scan.roomIndex} →</span></button>{/each}</div>{/if}
       </div>
-      <p class="mt-4 text-[11px] leading-4 text-slate-500">本机离线处理；扫描原包和照片保存在实验私有目录。原有 RoomPlan 导入仍可单独使用。</p>
+      <p class="mt-4 text-[11px] leading-4 text-slate-500">House Capture 在本机离线处理，原包和照片保存在实验私有目录；普通 RoomPlan 文件仍可选择新项目或添加到当前平面。</p>
     </div>
   </dialog>
 {/if}
@@ -1066,19 +1064,6 @@
     border-bottom-color: #cfb582 !important;
   }
   .build-body { scrollbar-color: #566359 transparent; scrollbar-width: thin; }
-  .studio-scan-import {
-    border: 1px solid #b89a6166;
-    background: linear-gradient(135deg, #33413b, #26312d 63%, #1d2827);
-    box-shadow: inset 0 1px #ffffff1b, 0 8px 20px #00000020;
-    color: #f3e8cf;
-    transition: border-color .2s, background .2s, box-shadow .2s;
-  }
-  .studio-scan-import:hover {
-    border-color: #d5b880;
-    background: linear-gradient(135deg, #415047, #2e3b34 63%, #26322f);
-    box-shadow: inset 0 1px #ffffff25, 0 10px 24px #00000035;
-  }
-  .studio-scan-import span:last-child { color: #bfccbf !important; }
   .build-body h3, .build-body h4 {
     color: #d4c29d !important; font-size: 10px; font-weight: 600;
     line-height: 1.35; text-transform: uppercase; letter-spacing: .11em;

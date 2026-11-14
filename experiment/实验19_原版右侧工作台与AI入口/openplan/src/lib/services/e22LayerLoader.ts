@@ -24,6 +24,7 @@ type Grid = { stepM: number; originM: number[]; cells: Cell[] };
 export interface LoadedE22Layer {
   object: THREE.Object3D;
   setOpacity(value: number): void;
+  setClipping(enabled: boolean, heightM: number): void;
   dispose(): void;
 }
 
@@ -124,9 +125,11 @@ function makeVoxelInstances(grid: Grid, color: string, order: number, evidence?:
       uColor: { value: new THREE.Color(color) },
       uOpacity: { value: 1 },
       uCellSize: { value: grid.stepM * .985 },
+      uClipEnabled: { value: 0 },
+      uClipHeightWorld: { value: 150 },
     },
-    vertexShader: 'attribute vec3 instanceOffset; uniform float uCellSize; void main() { vec3 cellPosition = instanceOffset + position * uCellSize; gl_Position = projectionMatrix * modelViewMatrix * vec4(cellPosition, 1.0); }',
-    fragmentShader: 'uniform vec3 uColor; uniform float uOpacity; void main() { gl_FragColor = vec4(uColor, uOpacity); }',
+    vertexShader: 'attribute vec3 instanceOffset; uniform float uCellSize; varying float vWorldY; void main() { vec3 cellPosition = instanceOffset + position * uCellSize; vWorldY = (modelMatrix * vec4(cellPosition, 1.0)).y; gl_Position = projectionMatrix * modelViewMatrix * vec4(cellPosition, 1.0); }',
+    fragmentShader: 'uniform vec3 uColor; uniform float uOpacity; uniform float uClipEnabled; uniform float uClipHeightWorld; varying float vWorldY; void main() { if (uClipEnabled > 0.5 && vWorldY > uClipHeightWorld) discard; gl_FragColor = vec4(uColor, uOpacity); }',
     transparent: true, depthWrite: false, depthTest: true,
   }));
   outline.name = 'E22 voxel lines';
@@ -206,6 +209,12 @@ function makeRoomLines(data: any, color: string, order: number): THREE.Object3D 
 
 function own(object: THREE.Object3D): LoadedE22Layer {
   let disposed = false;
+  let displayOpacity: number | undefined;
+  let clipEnabled = false;
+  let clipHeightWorld = 150;
+  // E22 geometry is in metres, but its viewer parent scales it to centimetres.
+  // Three's material clipping planes and the outline shader both use world space.
+  const clipPlane = new THREE.Plane(new THREE.Vector3(0, -1, 0), clipHeightWorld);
   const materials = new Set<THREE.Material>();
   object.traverse(child => {
     const renderable = child as THREE.Mesh;
@@ -218,6 +227,8 @@ function own(object: THREE.Object3D): LoadedE22Layer {
     object,
     setOpacity(value) {
       const opacity = Math.max(0, Math.min(1, value));
+      if (displayOpacity === opacity) return;
+      displayOpacity = opacity;
       object.traverse(child => {
         const renderable = child as THREE.Mesh;
         if (!renderable.material) return;
@@ -230,6 +241,28 @@ function own(object: THREE.Object3D): LoadedE22Layer {
           material.transparent = material.opacity < 1;
           material.depthWrite = material.opacity >= 1 && !child.userData.e22Outline;
           material.needsUpdate = true;
+        }
+      });
+    },
+    setClipping(enabled, heightM) {
+      if (!Number.isFinite(heightM)) return;
+      const nextHeightWorld = heightM * 100;
+      if (clipEnabled === enabled && clipHeightWorld === nextHeightWorld) return;
+      const toggled = clipEnabled !== enabled;
+      clipEnabled = enabled;
+      clipHeightWorld = nextHeightWorld;
+      clipPlane.constant = nextHeightWorld;
+      object.traverse(child => {
+        const renderable = child as THREE.Mesh;
+        if (!renderable.material) return;
+        for (const material of Array.isArray(renderable.material) ? renderable.material : [renderable.material]) {
+          if (child.userData.e22Outline && material instanceof THREE.ShaderMaterial) {
+            material.uniforms.uClipEnabled.value = enabled ? 1 : 0;
+            material.uniforms.uClipHeightWorld.value = nextHeightWorld;
+          } else if (toggled) {
+            material.clippingPlanes = enabled ? [clipPlane] : [];
+            material.needsUpdate = true;
+          }
         }
       });
     },

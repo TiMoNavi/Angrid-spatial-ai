@@ -58,6 +58,20 @@ it('keeps metre grid coordinates and maps integer cells to their exact centres w
   expect((fill.material as THREE.Material).opacity).toBeCloseTo(.5);
   expect((fill.material as THREE.Material).depthWrite).toBe(false);
   expect(outline.material.uniforms.uOpacity.value).toBeCloseTo(.65);
+  loaded.setClipping(true, 1.5);
+  const plane = (fill.material as THREE.MeshBasicMaterial).clippingPlanes?.[0];
+  expect(plane?.normal.toArray()).toEqual([0, -1, 0]);
+  expect(plane?.constant).toBeCloseTo(150); // E22 metre coordinates under the viewer's ×100 parent
+  expect(outline.material.uniforms.uClipEnabled.value).toBe(1);
+  expect(outline.material.uniforms.uClipHeightWorld.value).toBe(150);
+  expect(outline.material.vertexShader).toContain('modelMatrix');
+  expect(outline.material.fragmentShader).toContain('vWorldY > uClipHeightWorld');
+  loaded.setClipping(true, 2.4);
+  expect(plane?.constant).toBeCloseTo(240);
+  expect(outline.material.uniforms.uClipHeightWorld.value).toBe(240);
+  loaded.setClipping(false, 2.4);
+  expect((fill.material as THREE.MeshBasicMaterial).clippingPlanes).toEqual([]);
+  expect(outline.material.uniforms.uClipEnabled.value).toBe(0);
   expect(fetchMock).toHaveBeenCalledWith('/api/e22-scans/scan-1/derived-v1/structure-grid.json', expect.objectContaining({ signal: expect.any(AbortSignal) }));
   loaded.dispose(); loaded.dispose();
 });

@@ -36,4 +36,15 @@
 - `npm run check`：0 错误、0 警告；实验 19 的 5 个 E22 Vitest 文件共 13 项通过；实验 22 Python 测试共 40 项通过；`NODE_ENV=production npm run build` 通过。
 - Microsoft Edge：用新导入扫描进入编辑器，2D 平面、3D PLY、平整结构格、RoomPlan 框及 2D→3D 往返均可用。旧 `living-room-e22` 的模型格与命名 GLB 资产也可读取。新扫描尚无模型模式时，面板明确显示不可用，不保留另一模式的旧图层。
 - 右侧沿用原有 Layers 页，扫描层按 manifest 分组；原生墙体开关只影响扫描项目 3D。格宽从 20 cm 切到 10 cm 后，PLY 请求 1→1、结构格 1→2；模型模式的 GLB 和固定模型格请求均为 1→1。方块轮廓是 12 条真实棱线，不包含三角面对角线。Edge 页面与控制台无错误。私有画面截图保留在本机 `/tmp/e22-edge-cube-edges-right-layers.png` 和 `/tmp/e22-right-groups-final-edge.png`，未提交扫描截图。
-- 已有右栏仍缺旧分层预览的逐层剖切、只看所选对象、全量／抽显计数；当前逐层开关不代表完成实例级面片切分。
+- 已有右栏仍缺旧分层预览的只看所选对象、全量／抽显计数；当前逐层开关不代表完成实例级面片切分。
+
+## 统一导入入口与 Inspector 修复（2026-11-14）
+
+- 复现旧入口报错：真实 House Capture ZIP 含 `Room/manifest.json` 和 `Room/rooms/room-0.json`，并无传统 `room.json`；旧的 RoomPlan ZIP 读取器因而拒绝该包。
+- 删除独立的 iPhone 扫描入口，保留原有 Import Scan / RoomPlan 按钮。统一入口按 ZIP 结构分流；传统 RoomPlan JSON／ZIP 继续打开原有导入选项，House Capture 交给实验 22 后处理。
+- Chromium 的 House Capture ZIP 分流、传统 JSON、传统 `room.json` ZIP 三项回归通过。
+- Microsoft Edge 使用 203 MiB 的真实 `Living room.zip` 从统一入口重新导入，全流程约 1.8 分钟；自动进入 3D 并展开右侧 Layers，平整结构体素显示，勾选原始 LiDAR PLY 后资源返回 200。
+- `NODE_ENV=production npm run check`：0 错误、0 警告。
+- 右侧扫描层新增全局水平剖切与每层参与开关，默认高度 1.5 m；RoomPlan/OBB/AABB 边界默认不裁。普通 PLY／网格材质与实例体素的 12 条棱边均按同一世界高度裁切；拖动高度不重新请求资产，也不影响原版墙体和家具。
+- 新增剖切后的 5 个 E22 Vitest 文件共 14 项通过，生产构建与 diff 检查通过。Microsoft Edge 用两个真实扫描 manifest 验证剖切和逐层控制，0 页面异常；0.2 m 与 5 m 的画布截图哈希不同，确认裁切确实影响可见几何。
+- Inspector 的“Delete object”覆盖家具（含扫描导入对象）、楼梯、柱和场景对象；墙、门、窗保留原有结构操作。Chromium 删除／Undo 回归 1 项通过，Microsoft Edge 实测对象删除后消失、Undo 恢复，0 页面异常。

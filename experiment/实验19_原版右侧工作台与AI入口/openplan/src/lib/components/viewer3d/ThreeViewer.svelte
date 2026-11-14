@@ -53,7 +53,7 @@
   import { DEPTH_ORDER, depthOffset, furnitureDepthOffsets } from '$lib/utils/depthOrder';
   import { columnGeometry } from '$lib/utils/columnGeometry';
   import { getWallTextureCanvas, getFloorTextureCanvas, setTextureLoadCallback } from '$lib/utils/textureGenerator';
-  import { activeE22Scan, e22GridStep, e22LayerErrors, e22LayerSettings, e22Manifest, e22ShowEditorWalls } from '$lib/stores/e22Scan';
+  import { activeE22Scan, e22ClipEnabled, e22ClipHeightM, e22GridStep, e22LayerErrors, e22LayerSettings, e22Manifest, e22ShowEditorWalls } from '$lib/stores/e22Scan';
   import { E22_RENDERABLE_KINDS, E22_RESOLUTION_GRID_KINDS, loadE22Layer, type LoadedE22Layer } from '$lib/services/e22LayerLoader';
 
   let container: HTMLDivElement;
@@ -120,6 +120,7 @@
     if (!scanLayerRoot) return;
     const link = get(activeE22Scan), manifest = get(e22Manifest);
     const step = get(e22GridStep), settings = get(e22LayerSettings);
+    const clipEnabled = get(e22ClipEnabled), clipHeightM = get(e22ClipHeightM);
     const key = link && manifest && link.scanId === manifest.scanId
       ? link.scanId + ':' + manifest.mode + ':' + manifest.transformHash : '';
     if (scanLayerKey !== key) {
@@ -142,7 +143,10 @@
       const existing = loadedScanLayers.get(layer.id);
       if (existing) {
         existing.object.visible = visible;
-        if (visible) existing.setOpacity(settings[layer.id].opacity);
+        if (visible) {
+          existing.setOpacity(settings[layer.id].opacity);
+          existing.setClipping(clipEnabled && settings[layer.id].clipped, clipHeightM);
+        }
         continue;
       }
       const pending = pendingScanLayers.get(layer.id);
@@ -305,6 +309,7 @@
   function captureSceneBase64(width: number, height: number): string {
     updateInteriorCamera();
     const offRenderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+    offRenderer.localClippingEnabled = true;
     offRenderer.setSize(width, height);
     offRenderer.shadowMap.enabled = shadowsAllowed(offRenderer);
     offRenderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -534,6 +539,7 @@
     const width = 1920;
     const height = 1080;
     const offRenderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true, alpha: false });
+    offRenderer.localClippingEnabled = true;
     offRenderer.setSize(width, height);
     offRenderer.setPixelRatio(1);
     offRenderer.shadowMap.enabled = shadowsAllowed(offRenderer);
@@ -651,6 +657,7 @@
 
     if (!cameraPreviewRenderer) {
       cameraPreviewRenderer = new THREE.WebGLRenderer({ canvas: cameraPreviewCanvas, antialias: true, alpha: false });
+      cameraPreviewRenderer.localClippingEnabled = true;
       cameraPreviewRenderer.shadowMap.enabled = shadowsAllowed(cameraPreviewRenderer);
       cameraPreviewRenderer.shadowMap.type = THREE.PCFSoftShadowMap;
       cameraPreviewRenderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -998,6 +1005,7 @@
 
     try {
       renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+      renderer.localClippingEnabled = true;
     } catch {
       // WebGL is off, blocked or unsupported in this browser, and three has logged the error. Release
       // the scene built so far; onMount then starts nothing that needs a renderer.
@@ -2731,6 +2739,8 @@
     const stopScanManifest = e22Manifest.subscribe(syncScanLayers);
     const stopScanSettings = e22LayerSettings.subscribe(syncScanLayers);
     const stopScanStep = e22GridStep.subscribe(syncScanLayers);
+    const stopScanClipEnabled = e22ClipEnabled.subscribe(syncScanLayers);
+    const stopScanClipHeight = e22ClipHeightM.subscribe(syncScanLayers);
     const stopEditorWalls = e22ShowEditorWalls.subscribe(applyE22EditorWallVisibility);
     markSceneDirty();
     studioMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -2808,6 +2818,8 @@
       stopScanManifest();
       stopScanSettings();
       stopScanStep();
+      stopScanClipEnabled();
+      stopScanClipHeight();
       stopEditorWalls();
       clearScanLayers();
       scanLayerRoot?.parent?.remove(scanLayerRoot);

@@ -41,8 +41,13 @@ export interface E22Manifest {
   layers: E22Layer[];
 }
 
-export interface E22LayerSetting { visible: boolean; opacity: number }
+export interface E22LayerSetting { visible: boolean; opacity: number; clipped: boolean }
 export type E22LayerSettings = Record<string, E22LayerSetting>;
+
+/** Frames and bounds remain readable above the horizontal cut by default. */
+export function e22LayerClippedByDefault(kind: string): boolean {
+  return !['roomplan-structure', 'oriented-boxes', 'axis-aligned-boxes'].includes(kind);
+}
 
 export const activeE22Scan = writable<E22ScanLink | null>(null);
 export const e22Manifest = writable<E22Manifest | null>(null);
@@ -50,6 +55,9 @@ export const e22ViewMode = writable<'scan-evidence' | 'model-voxel'>('scan-evide
 export const e22GridStep = writable<0.2 | 0.1 | 0.05 | 0.025>(0.2);
 /** Only the native OpenPlan wall bodies in the 3D editor; E22 scan walls remain independent. */
 export const e22ShowEditorWalls = writable(false);
+/** These controls apply only to E22 scan assets, never native OpenPlan geometry. */
+export const e22ClipEnabled = writable(true);
+export const e22ClipHeightM = writable(1.5);
 export const e22LayerSettings = writable<E22LayerSettings>({});
 export const e22LoadState = writable<{ loading: boolean; error: string | null }>({ loading: false, error: null });
 export const e22LayerErrors = writable<Record<string, string>>({});
@@ -90,6 +98,8 @@ export function attachE22Scan(link: E22ScanLink): void {
   e22ViewMode.set('scan-evidence');
   e22GridStep.set(0.2);
   e22ShowEditorWalls.set(false);
+  e22ClipEnabled.set(true);
+  e22ClipHeightM.set(1.5);
   void refreshE22Manifest();
 }
 
@@ -104,6 +114,8 @@ export function restoreE22Scan(projectId: string | null): void {
   e22ViewMode.set('scan-evidence');
   e22GridStep.set(0.2);
   e22ShowEditorWalls.set(false);
+  e22ClipEnabled.set(true);
+  e22ClipHeightM.set(1.5);
   e22LoadState.set({ loading: false, error: null });
   activeE22Scan.set(validLink(link) ? link : null);
   if (validLink(link)) void refreshE22Manifest();
@@ -160,7 +172,7 @@ export async function refreshE22Manifest(): Promise<void> {
         (mode === 'scan-evidence'
           ? ['roomplan-structure', 'clean-structure-grid', 'tsdf-fused-mesh'].includes(layer.id)
           : ['clean-structure-grid', 'model-voxel-grid'].includes(layer.id));
-      settings[layer.id] = { visible, opacity: Math.max(0, Math.min(1, layer.visual.opacity)) };
+      settings[layer.id] = { visible, opacity: Math.max(0, Math.min(1, layer.visual.opacity)), clipped: e22LayerClippedByDefault(layer.kind) };
     }
     e22LayerSettings.set(settings);
     e22LayerErrors.set({});
@@ -175,11 +187,26 @@ export async function refreshE22Manifest(): Promise<void> {
 export function setE22LayerVisible(id: string, visible: boolean): void {
   const layer = get(e22Manifest)?.layers.find(row => row.id === id);
   if (!layer?.available || !layer.renderable) return;
-  e22LayerSettings.update(all => ({ ...all, [id]: { visible, opacity: all[id]?.opacity ?? layer.visual.opacity } }));
+  e22LayerSettings.update(all => ({ ...all, [id]: { visible, opacity: all[id]?.opacity ?? layer.visual.opacity, clipped: all[id]?.clipped ?? e22LayerClippedByDefault(layer.kind) } }));
 }
 
 export function setE22LayerOpacity(id: string, opacity: number): void {
   const layer = get(e22Manifest)?.layers.find(row => row.id === id);
   if (!layer?.available || !layer.renderable || !Number.isFinite(opacity)) return;
-  e22LayerSettings.update(all => ({ ...all, [id]: { visible: all[id]?.visible ?? false, opacity: Math.max(0, Math.min(1, opacity)) } }));
+  e22LayerSettings.update(all => ({ ...all, [id]: { visible: all[id]?.visible ?? false, opacity: Math.max(0, Math.min(1, opacity)), clipped: all[id]?.clipped ?? e22LayerClippedByDefault(layer.kind) } }));
+}
+
+export function setE22LayerClipped(id: string, clipped: boolean): void {
+  const layer = get(e22Manifest)?.layers.find(row => row.id === id);
+  if (!layer?.available || !layer.renderable) return;
+  e22LayerSettings.update(all => ({ ...all, [id]: {
+    visible: all[id]?.visible ?? false,
+    opacity: all[id]?.opacity ?? layer.visual.opacity,
+    clipped,
+  } }));
+}
+
+export function setE22ClipHeightM(heightM: number): void {
+  if (!Number.isFinite(heightM)) return;
+  e22ClipHeightM.set(Math.max(0.2, Math.min(5, heightM)));
 }

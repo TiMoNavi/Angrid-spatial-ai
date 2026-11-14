@@ -3,8 +3,9 @@ import { get } from 'svelte/store';
 
 vi.mock('$app/environment', () => ({ browser: true }));
 
-import { activeE22Scan, e22LayerSettings, e22LoadState, e22Manifest, e22ShowEditorWalls, e22ViewMode,
-  refreshE22Manifest, restoreE22Scan, setE22ViewMode, type E22Manifest } from '$lib/stores/e22Scan';
+import { activeE22Scan, e22ClipEnabled, e22ClipHeightM, e22LayerSettings, e22LoadState, e22Manifest, e22ShowEditorWalls, e22ViewMode,
+  refreshE22Manifest, restoreE22Scan, setE22ClipHeightM, setE22LayerClipped, setE22LayerOpacity, setE22LayerVisible,
+  setE22ViewMode, type E22Manifest } from '$lib/stores/e22Scan';
 
 const link = {
   projectId: 'project-1', scanId: 'scan-1', roomIndex: 0,
@@ -30,6 +31,8 @@ afterEach(() => {
   e22LayerSettings.set({});
   e22ViewMode.set('scan-evidence');
   e22ShowEditorWalls.set(false);
+  e22ClipEnabled.set(true);
+  e22ClipHeightM.set(1.5);
 });
 
 it('clears scan-mode layers when the requested model mode has no generated manifest', async () => {
@@ -64,7 +67,27 @@ it('starts scan mode with RoomPlan lines and clean voxels, and enables available
   expect(settings['raw-lidar-ply'].visible).toBe(false);
   expect(settings['roomplan-structure'].visible).toBe(true);
   expect(settings['clean-structure-grid'].visible).toBe(true);
-  expect(settings['tsdf-fused-mesh']).toEqual({ visible: true, opacity: 1 });
+  expect(settings['tsdf-fused-mesh']).toEqual({ visible: true, opacity: 1, clipped: true });
+  expect(settings['roomplan-structure'].clipped).toBe(false);
+  expect(settings['clean-structure-grid'].clipped).toBe(true);
+});
+
+it('keeps per-layer cut choices when opacity or visibility changes and bounds the height', async () => {
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify(manifest), { status: 200 })));
+  activeE22Scan.set(link);
+  await refreshE22Manifest();
+  setE22LayerClipped('raw-lidar-ply', false);
+  setE22LayerOpacity('raw-lidar-ply', .4);
+  setE22LayerVisible('raw-lidar-ply', true);
+  expect(get(e22LayerSettings)['raw-lidar-ply']).toEqual({ visible: true, opacity: .4, clipped: false });
+  setE22ClipHeightM(2.3);
+  expect(get(e22ClipHeightM)).toBe(2.3);
+  setE22ClipHeightM(Number.NaN);
+  expect(get(e22ClipHeightM)).toBe(2.3);
+  setE22ClipHeightM(9);
+  expect(get(e22ClipHeightM)).toBe(5);
+  e22ClipEnabled.set(false);
+  expect(get(e22LayerSettings)['raw-lidar-ply'].clipped).toBe(false);
 });
 
 it('resets native wall visibility and detaches scan layers when opening a regular project', async () => {
@@ -75,9 +98,13 @@ it('resets native wall visibility and detaches scan layers when opening a regula
   expect(get(e22ShowEditorWalls)).toBe(false);
 
   e22ShowEditorWalls.set(true);
+  e22ClipEnabled.set(false);
+  e22ClipHeightM.set(3);
   restoreE22Scan('ordinary-project');
   expect(get(activeE22Scan)).toBeNull();
   expect(get(e22Manifest)).toBeNull();
   expect(get(e22LayerSettings)).toEqual({});
   expect(get(e22ShowEditorWalls)).toBe(false);
+  expect(get(e22ClipEnabled)).toBe(true);
+  expect(get(e22ClipHeightM)).toBe(1.5);
 });

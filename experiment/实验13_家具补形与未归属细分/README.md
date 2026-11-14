@@ -1,12 +1,27 @@
 # 实验 13：家具补形与未归属观察细分
 
-当前状态：等待用户复扫同一房间。复扫前只做计划和现有数据的只读审计，不修改切片、分类、补形或查看器算法。阶段 1–4 须在新扫描导出并完成双扫描对照后才能启动。
+当前状态：已收到并独立导入复扫 ZIP；两次扫描的家具匹配和切片诊断尚待完成。原实验 9/11、旧扫描、旧项目数据保持不变。分类和查看器复跑属于基线验收，不代表已改切片、家具补形或未归属分类规则。
 
 ## 目标与边界
 
 在实验 11 可用的编辑、叠放与分层查看基础上，独立评估两项增量：一是可选的“家具脑补修正体素”，补充腿、侧面、门板、窗帘等可能缺失的结构；二是把未归属观察体素细分成可复核的候选，而不是把所有零散表面都叫杂物或噪声。用户认为当前效果约八成合理，这是主观观察，不作为已有准确率。
 
-实验 12 已用于扫描过程回放，本实验因此编号 13。现阶段先建立计划和验收基线，不修改实验 9、实验 11、iPhone 采集端或任何 reference 项目；实施时在本目录建立独立的离线派生流水线和查看器副本。私有扫描与 AI 输出放在 experiment/.private 下，公共仓库只提交代码、测试、文档与脱敏样例。
+实验 12 已用于扫描过程回放，本实验因此编号 13。本轮已建立独立的离线导入和查看器副本，不修改实验 9、实验 11、iPhone 采集端或任何 reference 原版项目。私有扫描与后续 AI 输出放在 experiment/.private 下，公共仓库只提交代码、测试、文档与脱敏样例。
+
+新原包已从下载目录移至工作区上一级的 reference/案例office/Office 2.zip，并解压到同目录的 Office 2/。本实验通过 import_office2_rescan.py 只读调用已有基础导入、深度投影、原版 TSDF 和分类算法，输出到独立的 experiment/.private/office-2-rescan；原 office-2 不被覆盖。复现结果和阶段状态见 QA_REPORT.md。
+
+## 独立导入命令
+
+从 Angrid-spatial-ai 仓库根目录运行。Python 3.11 虚拟环境和全部输出都在 Git 忽略的 experiment/.private 中；基础导入需要 NumPy、Pillow，分类还需要 SciPy、trimesh，原版 TSDF 需要 Open3D。
+
+    uv venv --python 3.11 experiment/.private/venvs/experiment13
+    uv pip install --python experiment/.private/venvs/experiment13/bin/python 'numpy>=1.26,<3' 'Pillow>=10' 'scipy>=1.11,<2' 'trimesh>=4,<5' open3d
+    experiment/.private/venvs/experiment13/bin/python experiment/实验13_家具补形与未归属细分/import_office2_rescan.py --stage base
+    experiment/.private/venvs/experiment13/bin/python experiment/实验13_家具补形与未归属细分/import_office2_rescan.py --stage depth
+    experiment/.private/venvs/experiment13/bin/python experiment/实验13_家具补形与未归属细分/import_office2_rescan.py --stage classify
+    experiment/.private/venvs/experiment13/bin/python experiment/实验13_家具补形与未归属细分/import_office2_rescan.py --stage fusion
+
+脚本逐阶段校验 ZIP 来源哈希；再次运行 base 会复用同一原包结果，换包则拒绝覆盖。分类产物仍使用原有 derived-v1 契约；后续补形和未归属细分会另写 derived-v2，不影响本轮基线。
 
 ## 已核实的当前状态
 
